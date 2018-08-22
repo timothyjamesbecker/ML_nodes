@@ -39,7 +39,16 @@ r-base \
 python \
 python-dev \
 python-pip \
+python-numpy \
+python-scipy \
+python-sklearn \
+python-h5py \
 && apt-get clean
+
+#proxy server setup for head nodes
+apt-get install squid
+cp /etc/squid.squid.conf .etc/squid.conf.old
+chmod a-w /etc/squid/squid.conf.old
 
 #mysql python interface
 mkdir /software
@@ -55,15 +64,17 @@ cd /software
 wget http://mirror.reverse.net/pub/apache/spark/spark-2.3.1/spark-2.3.1-bin-hadoop2.7.tgz
 tar -xzf spark-2.3.1-bin-hadoop2.7.tgz
 rm spark-2.3.1-bin-hadoop2.7.tgz
-mv spark-2.3.1-bin-hadoop2.7 /opt/spark
+mv spark-2.3.1-bin-hadoop2.7 /software/spark
+chgrp -R root /softwar/spark
+chown -R root /software/spark
 cd / 
 #modify /etc/environment PATH and SPARK_HOME
-sed -i '$ a PATH=$PATH":/opt/spark/bin"' /etc/environment
-sed -i '$ a SPARK_HOME="/opt/spark"' /etc/environment
-export PATH=$PATH":/opt/spark/bin"
-export SPARK_HOME="/opt/spark"
-sed -i '$ a export PATH=$PATH":/opt/spark/bin"' ~/.bashrc
-sed -i '$ a export SPARK_HOME="/opt/spark"' ~/.bachrc
+sed -i '1 c PATH="/usr/local/sbin:/usr/local/bin:/sur/sbin:/usr/bin:/sbin:/bin:/software/spark/bin"' /etc/environment
+sed -i '$ a SPARK_HOME="/software/spark"' /etc/environment
+export PATH=$PATH":/software/spark/bin"
+export SPARK_HOME="/software/spark"
+sed -i '$ a export PATH=$PATH":/software/spark/bin"' ~/.bashrc
+sed -i '$ a export SPARK_HOME="/software/spark"' ~/.bachrc
 echo 'PATH is now set to: '$PATH
 echo 'SPARK_HOME is now set to: '$SPARK_HOME
 
@@ -77,15 +88,10 @@ Rscript --save -e "source('https://bioconductor.org/biocLite.R'); biocLite('DNAc
 pip install -I argparse
 pip install -Iv 'cython>=0.24.0,<0.25.0'
 pip install -Iv 'pyspark>2.3,<=2.3.1'
-pip install -Iv 'h5py>=2.8.0,<2.8.1'
-pip install -Iv 'numpy>=1.15,<=1.16'
-pip install -I scipy
-pip install -I scikit-learn
-#pip install -I opencv3
-pip install -Iv 'tensorflow>=1.9.0,<1.9.1'
+pip install -I opencv-contrib-python
+pip install -I tensorflow
 #tensorflow-gpu
 pip install -I  chainer
-
 
 #remote and bio installs
 pip install -I paramiko
