@@ -94,6 +94,7 @@ pip install -Iv 'cython>=0.24.0,<0.25.0'
 pip install -Iv 'pyspark>2.3,<=2.3.1'
 pip install -I piexif
 pip install -I opencv-contrib-python
+pip install -I pytesseract
 pip install -I tensorflow
 #tensorflow-gpu
 pip install -I  chainer
