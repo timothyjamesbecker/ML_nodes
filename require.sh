@@ -5,6 +5,7 @@
 #build your R install of 3.5
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 sed -i '$ a deb http://lib.stat.cmu.edu/R/CRAN/bin/linux/ubuntu xenial-cran35/' /etc/apt/sources.list
+add-apt-repository ppa:alex-p/tesseract-ocr
 
 #deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/
 
@@ -21,6 +22,7 @@ maven \
 wget \
 nano \
 screen \
+system-config-lvm \
 docker.io \
 libffi6 \
 libffi-dev \
@@ -36,6 +38,8 @@ libncurses5-dev \
 libbz2-dev \
 zlib1g-dev \
 r-base \
+tesseract-ocr \
+libtesseract-dev \
 python \
 python-dev \
 python-pip \
@@ -88,6 +92,7 @@ Rscript --save -e "source('https://bioconductor.org/biocLite.R'); biocLite('DNAc
 pip install -I argparse
 pip install -Iv 'cython>=0.24.0,<0.25.0'
 pip install -Iv 'pyspark>2.3,<=2.3.1'
+pip install -I piexif
 pip install -I opencv-contrib-python
 pip install -I tensorflow
 #tensorflow-gpu
