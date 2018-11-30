@@ -5,6 +5,7 @@ import sys
 import time
 import getpass
 import argparse
+import socket
 import paramiko
 import logging
 import multiprocessing.dummy as mp
@@ -14,6 +15,7 @@ logging.raiseExceptions=False
 def get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     client=paramiko.SSHClient()
     client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     check   = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
@@ -81,7 +83,7 @@ if args.head is not None:
     head = args.head.split('.')[0]
     domain = '.'.join(args.head.split('.')[1:])
 else:
-    raise IOError
+    head = socket.gethostname()
 if args.port is not None:
     port = args.port
 else:
