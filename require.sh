@@ -69,7 +69,7 @@ wget http://mirror.reverse.net/pub/apache/spark/spark-2.3.1/spark-2.3.1-bin-hado
 tar -xzf spark-2.3.1-bin-hadoop2.7.tgz
 rm spark-2.3.1-bin-hadoop2.7.tgz
 mv spark-2.3.1-bin-hadoop2.7 /software/spark
-chgrp -R root /softwar/spark
+chgrp -R root /software/spark
 chown -R root /software/spark
 cd / 
 #modify /etc/environment PATH and SPARK_HOME
