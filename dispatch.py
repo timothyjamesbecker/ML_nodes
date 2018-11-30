@@ -81,9 +81,10 @@ args = parser.parse_args()
 
 if args.head is not None:
     head = args.head.split('.')[0]
-    domain = '.'.join(args.head.split('.')[1:])
+    domain = '.'+'.'.join(args.head.split('.')[1:])
 else:
     head = socket.gethostname()
+    domain = ''
 if args.port is not None:
     port = args.port
 else:
@@ -107,7 +108,7 @@ if __name__=='__main__':
     pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
 
     #start it up-----------------------------------------------------------------------
-    cx = {'host':head+'.'+domain,'port':port,'uid':uid,'pwd':pwd}
+    cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
     if nodes is None:
         client=paramiko.SSHClient()
         client.load_system_host_keys()
