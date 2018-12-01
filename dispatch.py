@@ -233,7 +233,7 @@ if __name__=='__main__':
         R = []
         for l in result_list: R += [l]
         result_list = []
-        print(R)
+        for r in R: print(r.replace('\r','').replace('\n',''))
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         p1 = mp.Pool(threads)
@@ -257,5 +257,5 @@ if __name__=='__main__':
         R = []
         for l in result_list: R+=[l]
         result_list=[]
-        print(R)
+        for r in R: print(r.replace('\r','').replace('\n',''))
     #close it down----------------------------------------------------------------------
