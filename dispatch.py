@@ -218,6 +218,7 @@ if __name__=='__main__':
         R = []
         for l in result_list: R += [l]
         result_list = []
+        print(R)
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         p1=mp.Pool(threads)
@@ -238,7 +239,8 @@ if __name__=='__main__':
         p1.close()
         p1.join()
         #collect results----------------------------------------------------------
-        R=[]
+        R = []
         for l in result_list: R+=[l]
         result_list=[]
+        print(R)
     #close it down----------------------------------------------------------------------
