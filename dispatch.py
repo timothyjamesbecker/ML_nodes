@@ -8,11 +8,12 @@ import argparse
 import socket
 import paramiko
 import logging
+import subprocess32 as subprocess
 import multiprocessing.dummy as mp
 logging.raiseExceptions=False
 
 #worker thread here-----------------------------------------------------------------------------
-def get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,rounding=2):
+def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     client=paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -46,7 +47,7 @@ def get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     client.close()
     return N
 
-def command_runner(cx,node,cmd,verbose=False):
+def remote_command_runner(cx,node,cmd,verbose=False):
     C = {node:[]}
     client=paramiko.SSHClient()
     client.load_system_host_keys()
@@ -60,6 +61,31 @@ def command_runner(cx,node,cmd,verbose=False):
     client.close()
     return C
 
+def get_resources(node,disk_patterns['/','/data'],verbose=False,rounding=2):
+    N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
+    check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
+    check += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
+    command = ["ssh %s -t '%s'"%(node,check)]
+    R = {'out':'','err':{}}
+    try:
+        R['out'] = subprocess.check_output(' '.join(command),
+                                              stderr = subprocess.STDOUT,
+                                              shell = True,
+                                              env = {})
+    except subprocess.CalledProcessError as E:
+        R['err']['output']  = E.output
+        R['err']['message'] = E.message
+        R['err']['code']    = E.returncode
+    except OSError as E:
+        R['err']['output']  = E.strerror
+        R['err']['message'] = E.message
+        R['err']['code']    = E.errno
+    return R
+
+def command_runner():
+    C = {}
+    return C
+
 #puts data back together
 result_list = [] #async queue to put results for || stages
 def collect_results(result):
@@ -67,7 +93,7 @@ def collect_results(result):
 
 des = """
 ---------------------------------------------------------------
-multi-node  ssh based multithreaded dispatching client\n11/18/2018-11/30/2018\tTimothy James Becker
+multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-11/30/2018\tTimothy James Becker
 ---------------------------------------------------------------"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
@@ -75,7 +101,7 @@ parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
 parser.add_argument('--targets',type=str,help='comma seperated list of host targets\t[/etc/hosts file from head]')
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
-parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t[False]')
+parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t\t[False]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
 args = parser.parse_args()
 
@@ -101,7 +127,6 @@ else:
     cmd = None
 
 if __name__=='__main__':
-    paramiko.util.log_to_file("filename.log")
     start = time.time()
     print('user:'),
     uid = sys.stdin.readline().replace('\n','')
@@ -110,6 +135,7 @@ if __name__=='__main__':
     #start it up-----------------------------------------------------------------------
     cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
     if nodes is None:
+        #remote----------------------------------------------------------------------------------
         client=paramiko.SSHClient()
         client.load_system_host_keys()
         client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
@@ -121,6 +147,9 @@ if __name__=='__main__':
                 if node != head: nodes += [node]
         print('using nodes: %s'%nodes)
         client.close()
+        #remote------------------------------------------------------------------------------------
+        #local=====================================================================================
+        #local=====================================================================================
         time.sleep(0.5)
     res,N,threads = {node:[] for node in nodes},{},len(nodes)
     print('using %s number of connection threads'%threads)
@@ -130,7 +159,7 @@ if __name__=='__main__':
         p1=mp.Pool(threads)
         for node in nodes:  # each site in ||
             p1.apply_async(get_resources,
-                           args=(cx,node,['/','/data'],args.verbose,2),
+                           args=(node,['/','/data'],args.verbose,2),
                            callback=collect_results)
             time.sleep(0.1)
         p1.close()
@@ -145,7 +174,7 @@ if __name__=='__main__':
         p1=mp.Pool(threads)
         for node in nodes:  # each site in ||
             print('dispatching work on node : %s ..'%node)
-            p1.apply_async(command_runner,
+            p1.apply_async(remote_command_runner,
                            args=(cx,node,cmd,args.verbose),
                            callback=collect_results)
             time.sleep(0.1)
