@@ -103,9 +103,24 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             pass
     return N
 
-def command_runner():
-    C = {}
-    return C
+def command_runner(cx,node,cmd,verbose=False):
+    if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
+    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
+    R = {'out':'','err':{}}
+    try:
+        R['out']=subprocess.check_output(' '.join(command),
+                                         stderr=subprocess.STDOUT,
+                                         shell=True,
+                                         env={})
+    except subprocess.CalledProcessError as E:
+        R['err']['output']=E.output
+        R['err']['message']=E.message
+        R['err']['code']=E.returncode
+    except OSError as E:
+        R['err']['output']=E.strerror
+        R['err']['message']=E.message
+        R['err']['code']=E.errno
+    return R
 
 #puts data back together
 result_list = [] #async queue to put results for || stages
@@ -221,7 +236,7 @@ if __name__=='__main__':
         print(R)
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
-        p1=mp.Pool(threads)
+        p1 = mp.Pool(threads)
         if args.remote:
             for node in nodes:  # each site in ||
                 print('dispatching work on node : %s ..'%node)
@@ -233,7 +248,7 @@ if __name__=='__main__':
             for node in nodes:  # each site in ||
                 print('dispatching work on node : %s ..'%node)
                 p1.apply_async(command_runner,
-                               args=(node,cmd,args.verbose),
+                               args=(cx,node,cmd,args.verbose),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
