@@ -165,9 +165,11 @@ if __name__=='__main__':
         p1.close()
         p1.join()
         #collect results---------------------------------------------------------
-        R = {}
-        for l in result_list: R[l.keys()[0]] = l[l.keys()[0]]
-        for r in R: print('%s: %s'%(r,R[r]))
+        #R = {}
+        # for l in result_list: R[l.keys()[0]] = l[l.keys()[0]]
+        # for r in R: print('%s: %s'%(r,R[r]))
+        R = []
+        for l in result_list: R += [l]
         result_list = []
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
