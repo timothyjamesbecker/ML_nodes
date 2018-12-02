@@ -266,5 +266,7 @@ if __name__=='__main__':
         R = []
         for l in result_list: R += [str(l['out'])]
         result_list = []
-        if args.verbose: print(R)
+        if args.verbose:
+            with open('~/run.log','w') as f:
+                f.write('\n'.join(R))
     #close it down----------------------------------------------------------------------
