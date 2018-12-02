@@ -52,16 +52,16 @@ def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,round
 #remote/parimiko version of command dispatcher tool--
 #best for lightweight I/O----------------------------
 def remote_command_runner(cx,node,cmd,verbose=False):
-    C = {'out':'','err':[]}
+    C = {'out':'','err':''}
     client=paramiko.SSHClient()
     client.load_system_host_keys()
     client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
     if not args.sudo: command = "ssh %s -t '%s'"%(node,cmd)
     else:             command = "ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)
     stdin, stdout, stderr = client.exec_command(command)
-    for line in stdout: C['out'] += [line.replace('\n','')]
+    for line in stdout: C['out'] += line
     if verbose:
-        for line in stderr: C['err'] += [line.replace('\n','')]
+        for line in stderr: C['err'] += line.replace('\n','')
     client.close()
     return C
 
