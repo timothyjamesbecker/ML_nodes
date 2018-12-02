@@ -146,7 +146,7 @@ def collect_results(result):
 
 des = """
 ---------------------------------------------------------------
-multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-11/30/2018\tTimothy James Becker
+multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/02/2018\tTimothy James Becker
 
 (1) use head,port,targets,remote to perform remote light-weight tasks
 (2) use command and sudo to run intensive screen attachable processess
@@ -237,7 +237,7 @@ if __name__=='__main__':
             #local=====================================================================================
         time.sleep(0.1)
     N,R = {},[]
-    if args.thread is not None: threads = args.threads
+    if args.threads is not None: threads = args.threads
     else:                       threads = len(nodes)
     print('using %s number of connection threads'%threads)
     if args.check_resources: #execute a resource check
