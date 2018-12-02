@@ -71,7 +71,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['out'] = subprocess.check_output(' '.join(command),
                                               stderr=subprocess.STDOUT,
                                               shell=True)
-        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        # R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
@@ -116,7 +116,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
             R['out']=subprocess.check_output(' '.join(command),
                                              stderr=subprocess.STDOUT,
                                              shell=True,env=env)
-        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore')
+        # R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']=E.output
         R['err']['message']=E.message
@@ -231,7 +231,7 @@ if __name__=='__main__':
         else:
             for node in nodes:
                 p1.apply_async(get_resources,
-                               args=(node,['/','/data'],args.verbose,None,2),
+                               args=(node,['/','/data'],args.verbose,2),
                                callback=collect_results)
         p1.close()
         p1.join()
@@ -254,7 +254,7 @@ if __name__=='__main__':
             for node in nodes:  # each site in ||
                 print('dispatching work on node : %s ..'%node)
                 p1.apply_async(command_runner,
-                               args=(cx,node,cmd,args.verbose),
+                               args=(cx,node,cmd,args.verbose,None),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
