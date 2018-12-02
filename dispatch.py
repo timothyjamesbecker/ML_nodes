@@ -71,7 +71,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['out'] = subprocess.check_output(' '.join(command),
                                            stderr=subprocess.STDOUT,
                                            shell=True)
-        # R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore').replace('\r','').replace('\n','')
+        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
