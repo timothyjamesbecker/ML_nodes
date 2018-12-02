@@ -147,8 +147,9 @@ def collect_results(result):
 des = """
 ---------------------------------------------------------------
 multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-11/30/2018\tTimothy James Becker
-use head,port,targets,remote to perform remote light-weight tasks
-use command and sudo to run intensive screen attachable processess
+
+(1) use head,port,targets,remote to perform remote light-weight tasks
+(2) use command and sudo to run intensive screen attachable processess
 ---------------------------------------------------------------"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
@@ -158,7 +159,7 @@ parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
 parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t\t[False]')
-parser.add_argument('--threads',type=intm,help='change the default number of threads\t\t\t[#targets]')
+parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
 args = parser.parse_args()
 
