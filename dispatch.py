@@ -104,8 +104,8 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     return N
 
 def command_runner(cx,node,cmd,env=None,verbose=False):
-    if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
-    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
+    if not args.sudo: command = [u"ssh %s -t '%s' "%(node,cmd)]
+    else:             command = [u"ssh %s -t \"echo '%s' | sudo -S %s\" "%(node,cx['pwd'],cmd)]
     R = {'out':'','err':{}}
     try:
         if env is None:
@@ -266,7 +266,5 @@ if __name__=='__main__':
         R = []
         for l in result_list: R += [str(l['out'])]
         result_list = []
-        if args.verbose:
-            with open('~/run.log','w') as f:
-                f.write('\n'.join(R))
+        if args.verbose: print(R)
     #close it down----------------------------------------------------------------------
