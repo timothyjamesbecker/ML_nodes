@@ -104,20 +104,18 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     return N
 
 def command_runner(cx,node,cmd,env=None,verbose=False):
-    if not args.sudo: command = ["ssh %s -t '%s' "%(node,cmd)]
-    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\" "%(node,cx['pwd'],cmd)]
+    if not args.sudo: command = ["ssh %s -t '%s' && reset"%(node,cmd)]
+    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\" && reset"%(node,cx['pwd'],cmd)]
     R = {'out':'','err':{}}
     try:
         if env is None:
             R['out'] = subprocess.check_output(' '.join(command),
                                                stderr=subprocess.STDOUT,
-                                               shell=True,
-                                               executable='/bin/bash')
+                                               shell=True)
         else:
             R['out'] = subprocess.check_output(' '.join(command),
                                                stderr=subprocess.STDOUT,
                                                shell=True,
-                                               executable='/bin/bash',
                                                env=env)
         R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
