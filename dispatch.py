@@ -71,7 +71,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['out'] = subprocess.check_output(' '.join(command),
                                               stderr=subprocess.STDOUT,
                                               shell=True)
-        # R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
@@ -116,7 +116,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
             R['out']=subprocess.check_output(' '.join(command),
                                              stderr=subprocess.STDOUT,
                                              shell=True,env=env)
-        # R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']=E.output
         R['err']['message']=E.message
@@ -263,7 +263,7 @@ if __name__=='__main__':
         p1.join()
         #collect results----------------------------------------------------------
         R = []
-        for l in result_list: R+=[l]
+        for l in result_list: R+=[l['out']]
         result_list=[]
         if args.verbose: print(R)
     #close it down----------------------------------------------------------------------
