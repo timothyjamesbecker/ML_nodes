@@ -241,7 +241,9 @@ if __name__=='__main__':
         R = []
         for l in result_list: R += [l]
         result_list = []
-        if args.verbose: print(R)
+        if args.verbose:
+            for r in R:
+                print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
