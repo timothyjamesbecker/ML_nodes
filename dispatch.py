@@ -237,7 +237,7 @@ if __name__=='__main__':
         time.sleep(0.1)
     N,R = {},[]
     if args.threads is not None: threads = args.threads
-    else:                       threads = len(nodes)
+    else:                        threads = len(nodes)
     print('using %s number of connection threads'%threads)
     if args.check_resources: #execute a resource check
         print('checking percent used resources on nodes: %s ..'%nodes)
@@ -291,7 +291,7 @@ if __name__=='__main__':
         #collect results----------------------------------------------------------
         for l in result_list: R += [str(l['out'])]
         result_list = []
-    stop=time.time()
+    stop = time.time()
     if args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for r in R:
             if type(r) is dict:        print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
