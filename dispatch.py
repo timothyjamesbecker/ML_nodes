@@ -71,7 +71,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['out'] = subprocess.check_output(' '.join(command),
                                               stderr=subprocess.STDOUT,
                                               shell=True)
-        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore').replace('\r','').replace('\n','')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
@@ -116,7 +116,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
             R['out']=subprocess.check_output(' '.join(command),
                                              stderr=subprocess.STDOUT,
                                              shell=True,env=env)
-        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore').replace('\r','').replace('\n','')
     except subprocess.CalledProcessError as E:
         R['err']['output']=E.output
         R['err']['message']=E.message
@@ -244,17 +244,17 @@ if __name__=='__main__':
         if args.verbose: print(R)
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
+        s = '\n'.join(['dispatching work for %s' for node in nodes])+'\n'
         p1 = mp.Pool(threads)
+        print(s)
         if args.remote:
             for node in nodes:  # each site in ||
-                print('dispatching work on node : %s ..'%node)
                 p1.apply_async(remote_command_runner,
                                args=(cx,node,cmd,args.verbose),
                                callback=collect_results)
                 time.sleep(0.1)
         else:
             for node in nodes:  # each site in ||
-                print('dispatching work on node : %s ..'%node)
                 p1.apply_async(command_runner,
                                args=(cx,node,cmd,None,args.verbose),
                                callback=collect_results)
