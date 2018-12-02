@@ -244,7 +244,7 @@ if __name__=='__main__':
         if args.verbose: print(R)
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
-        s = '\n'.join(['dispatching work for %s' for node in nodes])+'\n'
+        s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
         p1 = mp.Pool(threads)
         print(s)
         if args.remote:
