@@ -225,6 +225,7 @@ if __name__=='__main__':
         time.sleep(0.1)
     res,N,threads = {node:[] for node in nodes},{},len(nodes)
     print('using %s number of connection threads'%threads)
+    R = []
     if args.check_resources: #execute a resource check
         print('checking percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
@@ -248,12 +249,8 @@ if __name__=='__main__':
         except subprocess.CalledProcessError as E: pass
         except OSError as E: pass
         #collect results---------------------------------------------------------
-        R = []
         for l in result_list: R += [l]
         result_list = []
-        if args.verbose:
-            for r in R:
-                print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
@@ -279,8 +276,12 @@ if __name__=='__main__':
         except subprocess.CalledProcessError as E: pass
         except OSError as E: pass
         #collect results----------------------------------------------------------
-        R = []
         for l in result_list: R += [str(l['out'])]
         result_list = []
-        if args.verbose: print(R)
+        if args.verbose:
+            for r in R:
+                if type(r) is dict:
+                    print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
+                else:
+                    print(r)
     #close it down----------------------------------------------------------------------
