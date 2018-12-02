@@ -104,8 +104,8 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     return N
 
 def command_runner(cx,node,cmd,env=None,verbose=False):
-    if not args.sudo: command = ["ssh %s -t '%s' && reset"%(node,cmd)]
-    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\" && reset"%(node,cx['pwd'],cmd)]
+    if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
+    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
     R = {'out':'','err':{}}
     try:
         if env is None:
@@ -249,6 +249,7 @@ if __name__=='__main__':
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
         p1 = mp.Pool(threads)
         print(s)
+        s = ''
         if args.remote:
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_command_runner,
@@ -264,6 +265,12 @@ if __name__=='__main__':
         p1.close()
         p1.join()
         #collect results----------------------------------------------------------
+        try:
+            s = subprocess.check_output(['reset'],shell=True)
+        except subprocess.CalledProcessError as E:
+            pass
+        except OSError as E:
+            pass
         R = []
         for l in result_list: R += [str(l['out'])]
         result_list = []
