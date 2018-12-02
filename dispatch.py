@@ -196,7 +196,7 @@ if __name__=='__main__':
         else:
             #local=====================================================================================
             command=['cat /etc/hosts']
-            R={'out':'','err':{}}
+            R = {'out':'','err':{}}
             try:
                 R['out'] = subprocess.check_output(' '.join(command),
                                                    stderr=subprocess.STDOUT,
@@ -215,6 +215,12 @@ if __name__=='__main__':
                     node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
                     if node != head: nodes += [node]
             nodes = sorted(nodes)
+            try:
+                s=subprocess.check_output(['reset'],shell=True)
+            except subprocess.CalledProcessError as E:
+                pass
+            except OSError as E:
+                pass
             #local=====================================================================================
         time.sleep(0.1)
     res,N,threads = {node:[] for node in nodes},{},len(nodes)
@@ -237,6 +243,10 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
+        try:
+            s = subprocess.check_output(['reset'],shell=True)
+        except subprocess.CalledProcessError as E: pass
+        except OSError as E: pass
         #collect results---------------------------------------------------------
         R = []
         for l in result_list: R += [l]
@@ -264,13 +274,11 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
-        #collect results----------------------------------------------------------
         try:
             s = subprocess.check_output(['reset'],shell=True)
-        except subprocess.CalledProcessError as E:
-            pass
-        except OSError as E:
-            pass
+        except subprocess.CalledProcessError as E: pass
+        except OSError as E: pass
+        #collect results----------------------------------------------------------
         R = []
         for l in result_list: R += [str(l['out'])]
         result_list = []
