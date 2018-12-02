@@ -12,7 +12,9 @@ import subprocess32 as subprocess
 import multiprocessing.dummy as mp
 logging.raiseExceptions=False
 
-#worker thread here-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------
+#remote/parimiko version of a get resource dispatcher---------------------------------
+#best for light-weight I/O------------------------------------------------------------
 def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     client=paramiko.SSHClient()
     client.load_system_host_keys()
@@ -47,6 +49,9 @@ def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,round
     client.close()
     return N
 
+#----------------------------------------------------
+#remote/parimiko version of command dispatcher tool--
+#best for lightweight I/O----------------------------
 def remote_command_runner(cx,node,cmd,verbose=False):
     C = {node:[]}
     client=paramiko.SSHClient()
@@ -61,6 +66,9 @@ def remote_command_runner(cx,node,cmd,verbose=False):
     client.close()
     return C
 
+#[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+#local version of get resources, has no restrictions on I/O and time[[[[[[[[[
+#best for long-running and I/O heavy work and extensible via screen[[[[[[[[[[
 def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
@@ -103,6 +111,9 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             pass
     return N
 
+#[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+#local version of command dispatcher[[[[[[[[[[[[[[[[[[[
+#best for long running I/O and unrestricted use[[[[[[[[
 def command_runner(cx,node,cmd,env=None,verbose=False):
     if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
     else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
@@ -136,6 +147,8 @@ def collect_results(result):
 des = """
 ---------------------------------------------------------------
 multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-11/30/2018\tTimothy James Becker
+use head,port,targets,remote to perform remote light-weight tasks
+use command and sudo to run intensive screen attachable processess
 ---------------------------------------------------------------"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
@@ -145,6 +158,7 @@ parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
 parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t\t[False]')
+parser.add_argument('--threads',type=intm,help='change the default number of threads\t\t\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
 args = parser.parse_args()
 
@@ -174,8 +188,6 @@ if __name__=='__main__':
     print('user:'),
     uid = sys.stdin.readline().replace('\n','')
     pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
-
-    #start it up-----------------------------------------------------------------------
     cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
     if nodes is None:
         if args.remote:
@@ -223,20 +235,21 @@ if __name__=='__main__':
                 pass
             #local=====================================================================================
         time.sleep(0.1)
-    res,N,threads = {node:[] for node in nodes},{},len(nodes)
+    N,R = {},[]
+    if args.thread is not None: threads = args.threads
+    else:                       threads = len(nodes)
     print('using %s number of connection threads'%threads)
-    R = []
     if args.check_resources: #execute a resource check
         print('checking percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
-        if args.remote:
+        if args.remote:#---------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_get_resources,
                                args=(cx,node,['/','/data'],args.verbose,2),
                                callback=collect_results)
                 time.sleep(0.1)
-        else:
+        else:#-------------------------------------------------------------
             for node in nodes:
                 p1.apply_async(get_resources,
                                args=(node,['/','/data'],args.verbose,2),
@@ -247,7 +260,7 @@ if __name__=='__main__':
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
-        except OSError as E: pass
+        except OSError as E:                       pass
         #collect results---------------------------------------------------------
         for l in result_list: R += [l]
         result_list = []
@@ -257,13 +270,13 @@ if __name__=='__main__':
         p1 = mp.Pool(threads)
         print(s)
         s = ''
-        if args.remote:
+        if args.remote:#----------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_command_runner,
                                args=(cx,node,cmd,args.verbose),
                                callback=collect_results)
                 time.sleep(0.1)
-        else:
+        else:#--------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(command_runner,
                                args=(cx,node,cmd,None,args.verbose),
@@ -274,16 +287,14 @@ if __name__=='__main__':
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
-        except OSError as E: pass
+        except OSError as E:                       pass
         #collect results----------------------------------------------------------
         for l in result_list: R += [str(l['out'])]
         result_list = []
     stop=time.time()
-    if args.verbose:
+    if args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for r in R:
-            if type(r) is dict:
-                print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
-            else:
-                print(r)
+            if type(r) is dict:        print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
+            elif r != '\n' or r != '': print(r)
         print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
