@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import sys
 import time
@@ -296,6 +295,6 @@ if __name__=='__main__':
     if args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for r in R:
             if type(r) is dict:        print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
-            elif r != '\n' or r != '': print(r)
+            elif r != '\n' or r != '': print(r.rstrip('\n').rstrip('\r'))
         print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
