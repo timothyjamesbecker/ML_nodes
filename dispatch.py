@@ -69,9 +69,9 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     R = {'out':'','err':{}}
     try:
         R['out'] = subprocess.check_output(' '.join(command),
-                                              stderr=subprocess.STDOUT,
-                                              shell=True)
-        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore').replace('\r','').replace('\n','')
+                                           stderr=subprocess.STDOUT,
+                                           shell=True)
+        # R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore').replace('\r','').replace('\n','')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
@@ -109,13 +109,13 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
     R = {'out':'','err':{}}
     try:
         if env is None:
-            R['out']=subprocess.check_output(' '.join(command),
-                                             stderr=subprocess.STDOUT,
-                                             shell=True)
+            R['out'] = subprocess.check_output(' '.join(command),
+                                               stderr=subprocess.STDOUT,
+                                               shell=True)
         else:
-            R['out']=subprocess.check_output(' '.join(command),
-                                             stderr=subprocess.STDOUT,
-                                             shell=True,env=env)
+            R['out'] = subprocess.check_output(' '.join(command),
+                                               stderr=subprocess.STDOUT,
+                                               shell=True,env=env)
         R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore').replace('\r','').replace('\n','')
     except subprocess.CalledProcessError as E:
         R['err']['output']=E.output
