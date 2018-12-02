@@ -214,6 +214,7 @@ if __name__=='__main__':
                 if line.find('::') < 0 and not line.startswith('#') and line != '\n' and line != '':
                     node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
                     if node != head: nodes += [node]
+            nodes = sorted(nodes)
             #local=====================================================================================
         time.sleep(0.1)
     res,N,threads = {node:[] for node in nodes},{},len(nodes)
@@ -233,6 +234,7 @@ if __name__=='__main__':
                 p1.apply_async(get_resources,
                                args=(node,['/','/data'],args.verbose,2),
                                callback=collect_results)
+                time.sleep(0.1)
         p1.close()
         p1.join()
         #collect results---------------------------------------------------------
@@ -254,7 +256,7 @@ if __name__=='__main__':
             for node in nodes:  # each site in ||
                 print('dispatching work on node : %s ..'%node)
                 p1.apply_async(command_runner,
-                               args=(cx,node,cmd,args.verbose,None),
+                               args=(cx,node,cmd,None,args.verbose),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
