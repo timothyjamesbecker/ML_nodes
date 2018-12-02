@@ -278,10 +278,12 @@ if __name__=='__main__':
         #collect results----------------------------------------------------------
         for l in result_list: R += [str(l['out'])]
         result_list = []
+    stop=time.time()
     if args.verbose:
         for r in R:
             if type(r) is dict:
                 print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
             else:
                 print(r)
+        print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
