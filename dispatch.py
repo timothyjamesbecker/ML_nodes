@@ -70,8 +70,8 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     try:
         R['out'] = subprocess.check_output(' '.join(command),
                                               stderr=subprocess.STDOUT,
-                                              shell=True,
-                                              env={})
+                                              shell=True)
+        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
@@ -103,15 +103,20 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             pass
     return N
 
-def command_runner(cx,node,cmd,verbose=False):
+def command_runner(cx,node,cmd,env=None,verbose=False):
     if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
     else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
     R = {'out':'','err':{}}
     try:
-        R['out']=subprocess.check_output(' '.join(command),
-                                         stderr=subprocess.STDOUT,
-                                         shell=True,
-                                         env={})
+        if env is None:
+            R['out']=subprocess.check_output(' '.join(command),
+                                             stderr=subprocess.STDOUT,
+                                             shell=True)
+        else:
+            R['out']=subprocess.check_output(' '.join(command),
+                                             stderr=subprocess.STDOUT,
+                                             shell=True,env=env)
+        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']=E.output
         R['err']['message']=E.message
@@ -153,7 +158,7 @@ if args.port is not None:
 else:
     port = 22
 if args.targets is not None:
-    nodes = args.targets.split(',')
+    nodes = sorted(args.targets.split(','))
 elif os.path.exists('/etc/hosts'):
     nodes = None
 else:
@@ -183,6 +188,7 @@ if __name__=='__main__':
                 if line.find('::') < 0 and not line.startswith('#') and line != '\n':
                     node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
                     if node != head: nodes += [node]
+            nodes = sorted(nodes)
             print('using nodes: %s'%nodes)
             client.close()
             #remote------------------------------------------------------------------------------------
@@ -209,7 +215,7 @@ if __name__=='__main__':
                     node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
                     if node != head: nodes += [node]
             #local=====================================================================================
-        time.sleep(0.5)
+        time.sleep(0.1)
     res,N,threads = {node:[] for node in nodes},{},len(nodes)
     print('using %s number of connection threads'%threads)
     if args.check_resources: #execute a resource check
@@ -225,7 +231,7 @@ if __name__=='__main__':
         else:
             for node in nodes:
                 p1.apply_async(get_resources,
-                               args=(node,['/','/data'],args.verbose,2),
+                               args=(node,['/','/data'],args.verbose,None,2),
                                callback=collect_results)
         p1.close()
         p1.join()
@@ -233,7 +239,7 @@ if __name__=='__main__':
         R = []
         for l in result_list: R += [l]
         result_list = []
-        for r in R: print(r.replace('\r','').replace('\n',''))
+        if args.verbose: print(R)
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         p1 = mp.Pool(threads)
@@ -257,5 +263,5 @@ if __name__=='__main__':
         R = []
         for l in result_list: R+=[l]
         result_list=[]
-        for r in R: print(r.replace('\r','').replace('\n',''))
+        if args.verbose: print(R)
     #close it down----------------------------------------------------------------------
