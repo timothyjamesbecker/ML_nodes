@@ -88,7 +88,7 @@ def remote_flush_cache(cx,node):
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
-
+    command = 'ls -lh'
     stdin,stdout,stderr=client.exec_command(command)
     for line in stdout: C['out']+=line
     if verbose:
@@ -224,7 +224,7 @@ parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
 parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t\t[False]')
-parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t\t[False]')
+parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
 args = parser.parse_args()
@@ -369,7 +369,7 @@ if __name__=='__main__':
         else:  #-------------------------------------------------------------
             for node in nodes:
                 p1.apply_async(flush_cache,
-                               args=(node),
+                               args=(cx,node),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
