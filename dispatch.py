@@ -110,8 +110,8 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             pass
         try:
             if line.startswith('KiB Swap'):
-                total_swap = float(line.split(',')[0].split(' ')[4])
-                free_swap  = float(line.split(',')[1].split(' ')[3])
+                total_swap = float(line.split(',')[0].split(' ')[2])
+                free_swap  = float(line.split(',')[1].split(' ')[1])
                 N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
         except Exception as E:
             N[node]['err']['swap'] = E.message
