@@ -10,6 +10,7 @@ import paramiko
 import logging
 import subprocess32 as subprocess
 import multiprocessing.dummy as mp
+import utils
 logging.raiseExceptions=False
 
 #-------------------------------------------------------------------------------------
@@ -21,32 +22,47 @@ def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,round
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
+    N[node]['err'] = {}
     check   = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check  += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
     command = "ssh %s -t '%s'"%(node,check)
     stdin,stdout,stderr = client.exec_command(command,get_pty=True)
+    #parse and convert the resource query
     for line in stdout:
-        line = re.line(' +',' ',line)
+        line=re.sub(' +',' ',line)
         try:
             if line.startswith('%Cpu(s)'):
-                idle_cpu = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
-                N[node]['cpu'] = idle_cpu
+                idle_cpu=round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
+                N[node]['cpu']=idle_cpu
+        except Exception as E:
+            N[node]['err']['cpu']=E.message
+            pass
+        try:
             if line.startswith('KiB Mem'):
-                total_mem = float(line.split(',')[0].split(' ')[3])
-                free_mem  = float(line.split(',')[1].split(' ')[1])
-                N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
+                total_mem=float(line.split(',')[0].split(' ')[3])
+                free_mem=float(line.split(',')[1].split(' ')[1])
+                N[node]['mem']=round(100.0*(1.0-free_mem/total_mem),rounding)
+        except Exception as E:
+            N[node]['err']['mem']=E.message
+            pass
+        try:
             if line.startswith('KiB Swap'):
-                total_swap = float(line.split(',')[0].split(' ')[4])
-                free_swap  = float(line.split(',')[1].split(' ')[3])
-                N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
+                total_swap=float(line.split(',')[0].split(' ')[2])
+                free_swap=float(line.split(',')[1].split(' ')[1])
+                N[node]['swap']=round(100.0-100.0*(free_swap/total_swap),rounding)
+        except Exception as E:
+            N[node]['err']['swap']=E.message
+            pass
+        try:
             if line.startswith('/dev/'):
-                disk = line.replace('\r','').replace('\n','')
+                disk=line.replace('\r','').replace('\n','')
                 for p in disk_patterns:
                     if disk.endswith(p):
-                        N[node]['disks'][p] = round(float(disk.split(' ')[-2].replace('%','')),rounding)
+                        N[node]['disks'][p]=round(float(disk.split(' ')[-2].replace('%','')),rounding)
         except Exception as E:
-            N['err'] = E.message
+            N[node]['err']['disks']=E.message
             pass
+    if N[node]['err']!={}: N[node]['err']['out']=R['out']
     client.close()
     return N
 
@@ -62,6 +78,19 @@ def remote_command_runner(cx,node,cmd,verbose=False):
     else:             command = "ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)
     stdin, stdout, stderr = client.exec_command(command)
     for line in stdout: C['out'] += line
+    if verbose:
+        for line in stderr: C['err'] += line.replace('\n','')
+    client.close()
+    return C
+
+def remote_flush_cache(cx,node):
+    C = {'out':'','err':''}
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
+
+    stdin,stdout,stderr=client.exec_command(command)
+    for line in stdout: C['out']+=line
     if verbose:
         for line in stderr: C['err'] += line.replace('\n','')
     client.close()
@@ -156,6 +185,25 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
         R['err']['code']    = E.errno
     return R
 
+def flush_cache(cx,node):
+    cmd = utils.local()+'/flush.sh'
+    command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
+    R = {'out':'','err':{}}
+    try:
+        R['out'] = subprocess.check_output(' '.join(command),
+                                           stderr=subprocess.STDOUT,
+                                           shell=True)
+        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+    except subprocess.CalledProcessError as E:
+        R['err']['output']  = E.output
+        R['err']['message'] = E.message
+        R['err']['code']    = E.returncode
+    except OSError as E:
+        R['err']['output']  = E.strerror
+        R['err']['message'] = E.message
+        R['err']['code']    = E.errno
+    return R
+
 #puts data back together
 result_list = [] #async queue to put results for || stages
 def collect_results(result):
@@ -176,6 +224,7 @@ parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
 parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t\t[False]')
+parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t\t[False]')
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
 args = parser.parse_args()
@@ -309,6 +358,22 @@ if __name__=='__main__':
         #collect results----------------------------------------------------------
         for l in result_list: R += [str(l['out'])]
         result_list = []
+    if args.flush:
+        p1 = mp.Pool(threads)
+        if args.remote:  #---------------------------------------------------
+            for node in nodes:  # each site in ||
+                p1.apply_async(remote_flush_cache,
+                               args=(cx,node),
+                               callback=collect_results)
+                time.sleep(0.1)
+        else:  #-------------------------------------------------------------
+            for node in nodes:
+                p1.apply_async(flush_cache,
+                               args=(node),
+                               callback=collect_results)
+                time.sleep(0.1)
+        p1.close()
+        p1.join()
     stop = time.time()
     if args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for r in R:
