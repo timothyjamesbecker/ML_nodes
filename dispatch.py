@@ -70,6 +70,7 @@ def remote_command_runner(cx,node,cmd,verbose=False):
 #best for long-running and I/O heavy work and extensible via screen[[[[[[[[[[
 def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
+    N[node]['err'] = {}
     check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check += ' && '+' && '.join(['df -h | grep -w "%s"'%p for p in disk_patterns])
     command = ["ssh %s -t '%s'"%(node,check)]
@@ -94,7 +95,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
                 idle_cpu = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
                 N[node]['cpu'] = idle_cpu
         except Exception as E:
-            N['err']['cpu'] = E.message
+            N[node]['err']['cpu'] = E.message
             pass
         try:
             if line.startswith('KiB Mem'):
@@ -102,7 +103,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
                 free_mem  = float(line.split(',')[1].split(' ')[1])
                 N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
         except Exception as E:
-            N['err']['mem'] = E.message
+            N[node]['err']['mem'] = E.message
             pass
         try:
             if line.startswith('KiB Swap'):
@@ -110,7 +111,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
                 free_swap  = float(line.split(',')[1].split(' ')[3])
                 N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
         except Exception as E:
-            N['err']['swap'] = E.message
+            N[node]['err']['swap'] = E.message
             pass
         try:
             if line.startswith('/dev/'):
@@ -119,9 +120,9 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
                     if disk.endswith(p):
                         N[node]['disks'][p] = round(float(disk.split(' ')[-2].replace('%','')),rounding)
         except Exception as E:
-            N['err']['disks'] = E.message
+            N[node]['err']['disks'] = E.message
             pass
-    if N['err'] != {}: N['err']['out'] = R['out']
+    if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
     return N
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
