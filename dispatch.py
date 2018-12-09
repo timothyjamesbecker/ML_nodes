@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import re
 import time
 import getpass
 import argparse
@@ -23,8 +24,9 @@ def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,round
     check   = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check  += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
     command = "ssh %s -t '%s'"%(node,check)
-    stdin,stdout,stderr=client.exec_command(command,get_pty=True)
+    stdin,stdout,stderr = client.exec_command(command,get_pty=True)
     for line in stdout:
+        line = re.line(' +',' ',line)
         try:
             if line.startswith('%Cpu(s)'):
                 idle_cpu = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
@@ -90,6 +92,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['err']['code']    = E.errno
     #parse and convert the resource query
     for line in R['out'].split('\n'):
+        line = re.sub(' +',' ',line)
         try:
             if line.startswith('%Cpu(s)'):
                 idle_cpu = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
