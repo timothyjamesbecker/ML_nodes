@@ -71,7 +71,7 @@ def remote_command_runner(cx,node,cmd,verbose=False):
 def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
-    check += ' && '+' && '.join(['df -h | grep "\b%s\b"'%p for p in disk_patterns])
+    check += ' && '+' && '.join(['df -h | grep -w "%s"'%p for p in disk_patterns])
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
     try:
@@ -260,13 +260,13 @@ if __name__=='__main__':
         if args.remote:#---------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/media/data'],args.verbose,2),
+                               args=(cx,node,['/','/data'],args.verbose,2),
                                callback=collect_results)
                 time.sleep(0.1)
         else:#-------------------------------------------------------------
             for node in nodes:
                 p1.apply_async(get_resources,
-                               args=(node,['/','/media/data'],args.verbose,2),
+                               args=(node,['/','/data'],args.verbose,2),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
