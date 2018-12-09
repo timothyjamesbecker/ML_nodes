@@ -210,12 +210,12 @@ def collect_results(result):
     result_list.append(result)
 
 des = """
----------------------------------------------------------------
-multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/02/2018\tTimothy James Becker
+-----------------------------------------------------------------------
+multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/09/2018\tTimothy James Becker
 
 (1) use head,port,targets,remote to perform remote light-weight tasks
 (2) use command and sudo to run intensive screen attachable processess
----------------------------------------------------------------"""
+-----------------------------------------------------------------------"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
 parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
