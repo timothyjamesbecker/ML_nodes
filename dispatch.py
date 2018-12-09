@@ -71,14 +71,14 @@ def remote_command_runner(cx,node,cmd,verbose=False):
 def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
-    check += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
+    check += ' && '+' && '.join(['df -h | grep \b%s\b'%p for p in disk_patterns])
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
     try:
         R['out'] = subprocess.check_output(' '.join(command),
                                            stderr=subprocess.STDOUT,
                                            shell=True)
-        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        # R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R['err']['output']  = E.output
         R['err']['message'] = E.message
@@ -87,27 +87,41 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['err']['output']  = E.strerror
         R['err']['message'] = E.message
         R['err']['code']    = E.errno
+    #parse and convert the resource query
     for line in R['out'].split('\n'):
         try:
             if line.startswith('%Cpu(s)'):
                 idle_cpu = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
                 N[node]['cpu'] = idle_cpu
+        except Exception as E:
+            N['err'] += E.message
+            pass
+        try:
             if line.startswith('KiB Mem'):
                 total_mem = float(line.split(',')[0].split(' ')[3])
                 free_mem  = float(line.split(',')[1].split(' ')[1])
                 N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
+        except Exception as E:
+            N['err'] += E.message
+            pass
+        try:
             if line.startswith('KiB Swap'):
                 total_swap = float(line.split(',')[0].split(' ')[4])
                 free_swap  = float(line.split(',')[1].split(' ')[3])
                 N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
+        except Exception as E:
+            N['err'] += E.message
+            pass
+        try:
             if line.startswith('/dev/'):
                 disk = line.replace('\r','').replace('\n','')
                 for p in disk_patterns:
                     if disk.endswith(p):
                         N[node]['disks'][p] = round(float(disk.split(' ')[-2].replace('%','')),rounding)
         except Exception as E:
-            N['err'] = E.message
+            N['err'] += E.message
             pass
+    if N['err'] != {}: N['err'] += R['out']
     return N
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
@@ -207,19 +221,19 @@ if __name__=='__main__':
             #remote------------------------------------------------------------------------------------
         else:
             #local=====================================================================================
-            command=['cat /etc/hosts']
+            command = ['cat /etc/hosts']
             R = {'out':'','err':{}}
             try:
                 R['out'] = subprocess.check_output(' '.join(command),
                                                    stderr=subprocess.STDOUT,
                                                    shell=True)
             except subprocess.CalledProcessError as E:
-                R['err']['output']  = E.output
-                R['err']['message'] = E.message
-                R['err']['code']    = E.returncode
+                R['err']['output']   = E.output
+                R['err']['message']  = E.message
+                R['err']['code']     = E.returncode
             except OSError as E:
-                R['err']['output']  = E.strerror
-                R['err']['message'] = E.message
+                R['err']['output']   = E.strerror
+                R['err']['message']  = E.message
                 R['err']['code']     = E.errno
             nodes = []
             for line in R['out'].split('\n'):
@@ -246,13 +260,13 @@ if __name__=='__main__':
         if args.remote:#---------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],args.verbose,2),
+                               args=(cx,node,['/','/media/data'],args.verbose,2),
                                callback=collect_results)
                 time.sleep(0.1)
         else:#-------------------------------------------------------------
             for node in nodes:
                 p1.apply_async(get_resources,
-                               args=(node,['/','/data'],args.verbose,2),
+                               args=(node,['/','/media/data'],args.verbose,2),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
