@@ -361,6 +361,7 @@ if __name__=='__main__':
         for l in result_list: R += [str(l['out'])]
         result_list = []
     if args.flush:
+        print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
         if args.remote:  #---------------------------------------------------
             for node in nodes:  # each site in ||
