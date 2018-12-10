@@ -224,7 +224,7 @@ parser.add_argument('--targets',type=str,help='comma seperated list of host targ
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
-parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t\t[False]')
+parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
 parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
