@@ -27,42 +27,63 @@ def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,round
     check  += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
     command = "ssh %s -t '%s'"%(node,check)
     stdin,stdout,stderr = client.exec_command(command,get_pty=True)
+
+    N={node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
+    N[node]['err']={}
+    check='top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
+    check+=' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
+    command=["ssh %s -t '%s'"%(node,check)]
+    R={'out':'','err':{}}
+    try:
+        R['out']=subprocess.check_output(' '.join(command),
+                                         stderr=subprocess.STDOUT,
+                                         shell=True)
+        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore')
+    except subprocess.CalledProcessError as E:
+        R['err']['output']=E.output
+        R['err']['message']=E.message
+        R['err']['code']=E.returncode
+    except OSError as E:
+        R['err']['output']=E.strerror
+        R['err']['message']=E.message
+        R['err']['code']=E.errno
+
     #parse and convert the resource query
     for line in stdout:
-        line=re.sub(' +',' ',line)
+        line = re.sub(' +',' ',line)
         try:
             if line.startswith('%Cpu(s)'):
-                idle_cpu=round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
-                N[node]['cpu']=idle_cpu
+                idle_cpu       = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
+                N[node]['cpu'] = idle_cpu
         except Exception as E:
-            N[node]['err']['cpu']=E.message
+            N[node]['err']['cpu'] = E.message
             pass
         try:
             if line.startswith('KiB Mem'):
-                total_mem=float(line.split(',')[0].split(' ')[3])
-                free_mem=float(line.split(',')[1].split(' ')[1])
-                N[node]['mem']=round(100.0*(1.0-free_mem/total_mem),rounding)
+                total_mem      = float(line.split(',')[0].split(' ')[3])
+                free_mem       = float(line.split(',')[1].split(' ')[1])
+                N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
         except Exception as E:
-            N[node]['err']['mem']=E.message
+            N[node]['err']['mem'] = E.message
             pass
         try:
             if line.startswith('KiB Swap'):
-                total_swap=float(line.split(',')[0].split(' ')[2])
-                free_swap=float(line.split(',')[1].split(' ')[1])
-                N[node]['swap']=round(100.0-100.0*(free_swap/total_swap),rounding)
+                total_swap      = float(line.split(',')[0].split(' ')[2])
+                free_swap       = float(line.split(',')[1].split(' ')[1])
+                N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
         except Exception as E:
-            N[node]['err']['swap']=E.message
+            N[node]['err']['swap'] = E.message
             pass
         try:
             if line.startswith('/dev/'):
-                disk=line.replace('\r','').replace('\n','')
+                disk = line.replace('\r','').replace('\n','')
                 for p in disk_patterns:
                     if disk.endswith(p):
-                        N[node]['disks'][p]=round(float(disk.split(' ')[-2].replace('%','')),rounding)
+                        N[node]['disks'][p] = round(float(disk.split(' ')[-2].replace('%','')),rounding)
         except Exception as E:
-            N[node]['err']['disks']=E.message
+            N[node]['err']['disks'] = E.message
             pass
-    if N[node]['err']!={}: N[node]['err']['out']=R['out']
+    if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
     client.close()
     return N
 
@@ -83,16 +104,18 @@ def remote_command_runner(cx,node,cmd,verbose=False):
     client.close()
     return C
 
-def remote_flush_cache(cx,node):
+def remote_flush_cache(cx,node,verbose=False):
     C = {'out':'','err':''}
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
-    command = 'ls -lh'
-    stdin,stdout,stderr=client.exec_command(command)
-    for line in stdout: C['out']+=line
+    cmd = utils.path()+'flush.sh'
+    command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
+    stdin,stdout,stderr = client.exec_command(command)
+    for line in stdout: C['out'] += line
     if verbose:
         for line in stderr: C['err'] += line.replace('\n','')
+    if C['err'] == '': C.pop('err')
     client.close()
     return C
 
@@ -124,23 +147,23 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         line = re.sub(' +',' ',line)
         try:
             if line.startswith('%Cpu(s)'):
-                idle_cpu = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
+                idle_cpu       = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
                 N[node]['cpu'] = idle_cpu
         except Exception as E:
             N[node]['err']['cpu'] = E.message
             pass
         try:
             if line.startswith('KiB Mem'):
-                total_mem = float(line.split(',')[0].split(' ')[3])
-                free_mem  = float(line.split(',')[1].split(' ')[1])
+                total_mem      = float(line.split(',')[0].split(' ')[3])
+                free_mem       = float(line.split(',')[1].split(' ')[1])
                 N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
         except Exception as E:
             N[node]['err']['mem'] = E.message
             pass
         try:
             if line.startswith('KiB Swap'):
-                total_swap = float(line.split(',')[0].split(' ')[2])
-                free_swap  = float(line.split(',')[1].split(' ')[1])
+                total_swap      = float(line.split(',')[0].split(' ')[2])
+                free_swap       = float(line.split(',')[1].split(' ')[1])
                 N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
         except Exception as E:
             N[node]['err']['swap'] = E.message
@@ -183,6 +206,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
         R['err']['output']  = E.strerror
         R['err']['message'] = E.message
         R['err']['code']    = E.errno
+    if R['err'] == {}: R.pop('err')
     return R
 
 def flush_cache(cx,node):
@@ -202,7 +226,7 @@ def flush_cache(cx,node):
         R['err']['output']  = E.strerror
         R['err']['message'] = E.message
         R['err']['code']    = E.errno
-    if R['err'] = {}: R.pop('err')
+    if R['err'] == {}: R.pop('err')
     return R
 
 #puts data back together
