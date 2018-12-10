@@ -202,6 +202,7 @@ def flush_cache(cx,node):
         R['err']['output']  = E.strerror
         R['err']['message'] = E.message
         R['err']['code']    = E.errno
+    if R['err'] = {}: R.pop('err')
     return R
 
 #puts data back together
