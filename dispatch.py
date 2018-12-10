@@ -309,7 +309,7 @@ if __name__=='__main__':
     else:                        threads = len(nodes)
     print('using %s number of connection threads'%threads)
     if args.check_prior: #execute a resource check
-        print('checking percent used resources on nodes: %s ..'%nodes)
+        print('checking prior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
         if args.remote:#---------------------------------------------------
@@ -379,7 +379,7 @@ if __name__=='__main__':
         for l in result_list: R += [l]
         result_list = []
     if not args.check_prior: #execute a resource check
-        print('checking percent used resources on nodes: %s ..'%nodes)
+        print('checking posterior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
         if args.remote:#---------------------------------------------------
