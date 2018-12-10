@@ -227,7 +227,7 @@ parser.add_argument('--remote',action='store_true',help='perform ssh to remote h
 parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
 parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
-parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
+parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[True]')
 args = parser.parse_args()
 
 if args.head is not None:
@@ -314,13 +314,13 @@ if __name__=='__main__':
         if args.remote:#---------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],args.verbose,2),
+                               args=(cx,node,['/','/data'],(not args.verbose),2),
                                callback=collect_results)
                 time.sleep(0.1)
         else:#-------------------------------------------------------------
             for node in nodes:
                 p1.apply_async(get_resources,
-                               args=(node,['/','/data'],args.verbose,2),
+                               args=(node,['/','/data'],(not args.verbose),2),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
@@ -341,13 +341,13 @@ if __name__=='__main__':
         if args.remote:#----------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_command_runner,
-                               args=(cx,node,cmd,args.verbose),
+                               args=(cx,node,cmd,(not args.verbose)),
                                callback=collect_results)
                 time.sleep(0.1)
         else:#--------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(command_runner,
-                               args=(cx,node,cmd,None,args.verbose),
+                               args=(cx,node,cmd,None,(not args.verbose)),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
@@ -384,13 +384,13 @@ if __name__=='__main__':
         if args.remote:#---------------------------------------------------
             for node in nodes:  # each site in ||
                 p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],args.verbose,2),
+                               args=(cx,node,['/','/data'],(not args.verbose),2),
                                callback=collect_results)
                 time.sleep(0.1)
         else:#-------------------------------------------------------------
             for node in nodes:
                 p1.apply_async(get_resources,
-                               args=(node,['/','/data'],args.verbose,2),
+                               args=(node,['/','/data'],(not args.verbose),2),
                                callback=collect_results)
                 time.sleep(0.1)
         p1.close()
@@ -403,7 +403,7 @@ if __name__=='__main__':
         for l in result_list: R += [l]
         result_list = []
     stop = time.time()
-    if args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for r in R:
             if type(r) is dict:        print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
             elif r != '\n' or r != '': print(r.rstrip('\n').rstrip('\r'))
