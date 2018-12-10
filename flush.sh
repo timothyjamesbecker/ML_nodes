@@ -1,5 +1,10 @@
 #!/bin/bash
 sync
 echo 3 | tee /proc/sys/vm/drop_caches
-docker stop $(docker ps -a -q)
-docker rm $(docker ps -a -q)
+im=$(docker ps -a -q)
+if [[ $im ]]; then
+	docker stop $im
+	docker rm $im
+else
+	echo "no running docker containers found..."
+fi
