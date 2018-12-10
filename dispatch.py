@@ -224,7 +224,7 @@ parser.add_argument('--targets',type=str,help='comma seperated list of host targ
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
-parser.add_argument('--check_resources',action='store_true',help='check cpu,mem,swap,disk resources\t\t[False]')
+parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t\t[False]')
 parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[False]')
@@ -307,7 +307,7 @@ if __name__=='__main__':
     if args.threads is not None: threads = args.threads
     else:                        threads = len(nodes)
     print('using %s number of connection threads'%threads)
-    if args.check_resources: #execute a resource check
+    if args.check_prior: #execute a resource check
         print('checking percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
@@ -375,6 +375,31 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
+        for l in result_list: R += [l]
+        result_list = []
+    if not args.check_prior: #execute a resource check
+        print('checking percent used resources on nodes: %s ..'%nodes)
+        #dispatch resource checks to all nodes-------------------------------------
+        p1 = mp.Pool(threads)
+        if args.remote:#---------------------------------------------------
+            for node in nodes:  # each site in ||
+                p1.apply_async(remote_get_resources,
+                               args=(cx,node,['/','/data'],args.verbose,2),
+                               callback=collect_results)
+                time.sleep(0.1)
+        else:#-------------------------------------------------------------
+            for node in nodes:
+                p1.apply_async(get_resources,
+                               args=(node,['/','/data'],args.verbose,2),
+                               callback=collect_results)
+                time.sleep(0.1)
+        p1.close()
+        p1.join()
+        try:
+            s = subprocess.check_output(['reset'],shell=True)
+        except subprocess.CalledProcessError as E: pass
+        except OSError as E:                       pass
+        #collect results---------------------------------------------------------
         for l in result_list: R += [l]
         result_list = []
     stop = time.time()
