@@ -186,11 +186,9 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
     return R
 
 def flush_cache(cx,node):
-    cmd = utils.local()+'flush.sh'
-    print(cmd)
+    cmd = utils.path()+'flush.sh'
     command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
     R = {'out':'','err':{}}
-    R['out'] += cmd+'\n'
     try:
         R['out'] = subprocess.check_output(' '.join(command),
                                            stderr=subprocess.STDOUT,
