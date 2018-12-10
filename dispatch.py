@@ -186,9 +186,10 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
     return R
 
 def flush_cache(cx,node):
-    cmd = utils.local()+'/flush.sh'
+    cmd = utils.local()+'flush.sh'
     command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
     R = {'out':'','err':{}}
+    R['out'] += cmd+'\n'
     try:
         R['out'] = subprocess.check_output(' '.join(command),
                                            stderr=subprocess.STDOUT,
@@ -374,6 +375,8 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
+        for l in result_list: R += [l]
+        result_list = []
     stop = time.time()
     if args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         for r in R:
