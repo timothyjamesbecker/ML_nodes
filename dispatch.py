@@ -430,20 +430,21 @@ if __name__=='__main__':
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         print(R)
-        # S = {}
-        # for r in R: #{'status':{'node':{outputs...}}}
-        #     t = r.keys()[0]
-        #     if t in S:
-        #         n = r[t].keys()[0]
-        #         S[t][n] = r[t][n]
-        # for t in sorted(S.keys()): #cmd, flush, status
-        #     print('-'.join([0 for i in range(20)])+'results for %s'%t+'-'.join([0 for i in range(20)]))
-        #     for n in sorted(S[t].keys()):
-        #         if 'out' in S[t][n]:
-        #             re.sub(' +',' ',line)
-        #             out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n]['out'].replace('\r','')))
-        #             print('%s:\n%s'%(n,out))
-        #         else:
-        #             print('%s: %s'%(n,S[t][n]))
+        S,padding = {},32
+        for r in R: #{'status':{'node':{outputs...}}}
+            t = r.keys()[0]
+            n = r[t].keys()[0]
+            if t in S: S[t][n] = r[t][n]
+            else:      S[t]    = {n:r[t][n]}
+        for t in sorted(S.keys()): #cmd, flush, status
+            print(''.join(['<' for i in range(padding)])+'results for %s'%t+''.join(['>' for i in range(padding)]))
+            for n in sorted(S[t].keys()):
+                if 'out' in S[t][n]:
+                    out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n]['out'].replace('\r','')))
+                    if out.endswith('\n'): out = out[:-1]
+                    print('%s:\n%s'%(''.join([':' for i in range(padding)])+\
+                                     n+''.join([':' for i in range(padding)]),out))
+                else:
+                    print('%s: %s'%(n,S[t][n]))
         print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
