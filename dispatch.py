@@ -429,7 +429,8 @@ if __name__=='__main__':
         result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        for r in sorted(R,key=lambda x: x.keys()[0]):
-            print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
-        print('processing completed in %s sec'%round(stop-start,2))
+        print(R)
+        # for r in sorted(R,key=lambda x: x.keys()[0]):
+        #     print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
+        # print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
