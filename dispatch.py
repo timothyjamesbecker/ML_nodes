@@ -429,7 +429,6 @@ if __name__=='__main__':
         result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        print(R)
         S,padding = {},32
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
