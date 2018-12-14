@@ -186,47 +186,47 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
 def command_runner(cx,node,cmd,env=None,verbose=False):
     if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
     else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
-    R = {'out':'','err':{}}
+    R = {node:{'out':'','err':{}}}
     try:
         if env is None:
-            R['out'] = subprocess.check_output(' '.join(command),
-                                               stderr=subprocess.STDOUT,
-                                               shell=True)
+            R[node]['out'] = subprocess.check_output(' '.join(command),
+                                                     stderr=subprocess.STDOUT,
+                                                     shell=True)
         else:
-            R['out'] = subprocess.check_output(' '.join(command),
-                                               stderr=subprocess.STDOUT,
-                                               shell=True,
-                                               env=env)
-        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+            R[node]['out'] = subprocess.check_output(' '.join(command),
+                                                     stderr=subprocess.STDOUT,
+                                                     shell=True,
+                                                     env=env)
+        R[node]['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
-        R['err']['output']  = E.output
-        R['err']['message'] = E.message
-        R['err']['code']    = E.returncode
+        R[node]['err']['output']  = E.output
+        R[node]['err']['message'] = E.message
+        R[node]['err']['code']    = E.returncode
     except OSError as E:
-        R['err']['output']  = E.strerror
-        R['err']['message'] = E.message
-        R['err']['code']    = E.errno
-    if R['err'] == {}: R.pop('err')
+        R[node]['err']['output']  = E.strerror
+        R[node]['err']['message'] = E.message
+        R[node]['err']['code']    = E.errno
+    if R[node]['err'] == {}: R[node].pop('err')
     return R
 
 def flush_cache(cx,node):
     cmd = utils.path()+'flush.sh'
     command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
-    R = {'out':'','err':{}}
+    R = {node:{'out':'','err':{}}}
     try:
-        R['out'] = subprocess.check_output(' '.join(command),
-                                           stderr=subprocess.STDOUT,
-                                           shell=True)
-        R['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R[node]['out'] = subprocess.check_output(' '.join(command),
+                                                 stderr=subprocess.STDOUT,
+                                                 shell=True)
+        R[node]['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
-        R['err']['output']  = E.output
-        R['err']['message'] = E.message
-        R['err']['code']    = E.returncode
+        R[node]['err']['output']  = E.output
+        R[node]['err']['message'] = E.message
+        R[node]['err']['code']    = E.returncode
     except OSError as E:
-        R['err']['output']  = E.strerror
-        R['err']['message'] = E.message
-        R['err']['code']    = E.errno
-    if R['err'] == {}: R.pop('err')
+        R[node]['err']['output']  = E.strerror
+        R[node]['err']['message'] = E.message
+        R[node]['err']['code']    = E.errno
+    if R[node]['err'] == {}: R[node].pop('err')
     return R
 
 #puts data back together
@@ -236,7 +236,7 @@ def collect_results(result):
 
 des = """
 -----------------------------------------------------------------------
-multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/09/2018\tTimothy James Becker
+multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/14/2018\tTimothy James Becker
 
 (1) use head,port,targets,remote to perform remote light-weight tasks
 (2) use command and sudo to run intensive screen attachable processess
@@ -381,7 +381,7 @@ if __name__=='__main__':
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
         #collect results----------------------------------------------------------
-        for l in result_list: R += [str(l['out'])]
+        for l in result_list: R += [l]
         result_list = []
     if args.flush:
         print('flushing caches to clear free memory...')
@@ -429,8 +429,7 @@ if __name__=='__main__':
         result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        for r in R:
-            if type(r) is dict:        print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
-            elif r != '\n' or r != '': print(r.rstrip('\n').rstrip('\r'))
+        for r in sorted(R,key=lambda x: x.keys()[0]):
+            print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
         print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
