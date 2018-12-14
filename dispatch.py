@@ -178,7 +178,8 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             N[node]['err']['disks'] = E.message
             pass
     if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
-    return N
+    else:                    N[node].pop('err')
+    return {'status':N}
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of command dispatcher[[[[[[[[[[[[[[[[[[[
@@ -197,7 +198,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
                                                      stderr=subprocess.STDOUT,
                                                      shell=True,
                                                      env=env)
-        R[node]['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R[node]['out'] = R[node]['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R[node]['err']['output']  = E.output
         R[node]['err']['message'] = E.message
@@ -207,7 +208,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
         R[node]['err']['message'] = E.message
         R[node]['err']['code']    = E.errno
     if R[node]['err'] == {}: R[node].pop('err')
-    return R
+    return {'cmd':R}
 
 def flush_cache(cx,node):
     cmd = utils.path()+'flush.sh'
@@ -217,7 +218,7 @@ def flush_cache(cx,node):
         R[node]['out'] = subprocess.check_output(' '.join(command),
                                                  stderr=subprocess.STDOUT,
                                                  shell=True)
-        R[node]['out'] = R['out'].decode('unicode_escape').encode('ascii','ignore')
+        R[node]['out'] = R[node]['out'].decode('unicode_escape').encode('ascii','ignore')
     except subprocess.CalledProcessError as E:
         R[node]['err']['output']  = E.output
         R[node]['err']['message'] = E.message
@@ -227,7 +228,7 @@ def flush_cache(cx,node):
         R[node]['err']['message'] = E.message
         R[node]['err']['code']    = E.errno
     if R[node]['err'] == {}: R[node].pop('err')
-    return R
+    return {'flush':R}
 
 #puts data back together
 result_list = [] #async queue to put results for || stages
@@ -429,8 +430,20 @@ if __name__=='__main__':
         result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        print(R)
-        # for r in sorted(R,key=lambda x: x.keys()[0]):
-        #     print('%s: %s'%(r.keys()[0],r[r.keys()[0]]))
-        # print('processing completed in %s sec'%round(stop-start,2))
+        S = {}
+        for r in R: #{'status':{'node':{outputs...}}}
+            t = r.keys()[0]
+            if t in S:
+                n = r[t].keys()[0]
+                S[t][n] = r[t][n]
+        for t in sorted(S.keys()): #cmd, flush, status
+            print('-'.join([0 for i in range(20)])+'results for %s'%t+'-'.join([0 for i in range(20)]))
+            for n in sorted(S[t].keys()):
+                if 'out' in S[t][n]:
+                    re.sub(' +',' ',line)
+                    out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n]['out'].replace('\r','')))
+                    print('%s:\n%s'%(n,out))
+                else:
+                    print('%s: %s'%(n,S[t][n]))
+        print('processing completed in %s sec'%round(stop-start,2))
     #close it down----------------------------------------------------------------------
