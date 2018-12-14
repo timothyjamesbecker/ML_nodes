@@ -301,21 +301,21 @@ if __name__=='__main__':
         else:
             #local=====================================================================================
             command = ['cat /etc/hosts']
-            R = {'out':'','err':{}}
+            H = {'out':'','err':{}}
             try:
-                R['out'] = subprocess.check_output(' '.join(command),
+                H['out'] = subprocess.check_output(' '.join(command),
                                                    stderr=subprocess.STDOUT,
                                                    shell=True)
             except subprocess.CalledProcessError as E:
-                R['err']['output']   = E.output
-                R['err']['message']  = E.message
-                R['err']['code']     = E.returncode
+                H['err']['output']   = E.output
+                H['err']['message']  = E.message
+                H['err']['code']     = E.returncode
             except OSError as E:
-                R['err']['output']   = E.strerror
-                R['err']['message']  = E.message
-                R['err']['code']     = E.errno
+                H['err']['output']   = E.strerror
+                H['err']['message']  = E.message
+                H['err']['code']     = E.errno
             nodes = []
-            for line in R['out'].split('\n'):
+            for line in H['out'].split('\n'):
                 if line.find('::') < 0 and not line.startswith('#') and line != '\n' and line != '':
                     node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
                     if node != head: nodes += [node]
@@ -350,13 +350,13 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
+        #collect results---------------------------------------------------------
+        for l in result_list: R += [l]
+        result_list = []
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
-        #collect results---------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
@@ -377,13 +377,13 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
+        #collect results----------------------------------------------------------
+        for l in result_list: R += [l]
+        result_list = []
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
-        #collect results----------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
@@ -421,15 +421,16 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
+        #collect results---------------------------------------------------------
+        for l in result_list: R += [l]
+        result_list = []
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
-        #collect results---------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        print(R)
         S = {}
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
