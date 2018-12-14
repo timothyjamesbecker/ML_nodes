@@ -6,118 +6,9 @@ import time
 import getpass
 import argparse
 import socket
-import paramiko
-import logging
 import subprocess32 as subprocess
 import multiprocessing.dummy as mp
 import utils
-logging.raiseExceptions=False
-
-#-------------------------------------------------------------------------------------
-#remote/parimiko version of a get resource dispatcher---------------------------------
-#best for light-weight I/O------------------------------------------------------------
-def remote_get_resources(cx,node,disk_patterns=['/','/data'],verbose=False,rounding=2):
-    client=paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
-    N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
-    N[node]['err'] = {}
-    check   = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
-    check  += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
-    command = "ssh %s -t '%s'"%(node,check)
-    stdin,stdout,stderr = client.exec_command(command,get_pty=True)
-
-    N={node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
-    N[node]['err']={}
-    check='top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
-    check+=' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
-    command=["ssh %s -t '%s'"%(node,check)]
-    R={'out':'','err':{}}
-    try:
-        R['out']=subprocess.check_output(' '.join(command),
-                                         stderr=subprocess.STDOUT,
-                                         shell=True)
-        R['out']=R['out'].decode('unicode_escape').encode('ascii','ignore')
-    except subprocess.CalledProcessError as E:
-        R['err']['output']=E.output
-        R['err']['message']=E.message
-        R['err']['code']=E.returncode
-    except OSError as E:
-        R['err']['output']=E.strerror
-        R['err']['message']=E.message
-        R['err']['code']=E.errno
-
-    #parse and convert the resource query
-    for line in stdout:
-        line = re.sub(' +',' ',line)
-        try:
-            if line.startswith('%Cpu(s)'):
-                idle_cpu       = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
-                N[node]['cpu'] = idle_cpu
-        except Exception as E:
-            N[node]['err']['cpu'] = E.message
-            pass
-        try:
-            if line.startswith('KiB Mem'):
-                total_mem      = float(line.split(',')[0].split(' ')[3])
-                free_mem       = float(line.split(',')[1].split(' ')[1])
-                N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
-        except Exception as E:
-            N[node]['err']['mem'] = E.message
-            pass
-        try:
-            if line.startswith('KiB Swap'):
-                total_swap      = float(line.split(',')[0].split(' ')[2])
-                free_swap       = float(line.split(',')[1].split(' ')[1])
-                N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
-        except Exception as E:
-            N[node]['err']['swap'] = E.message
-            pass
-        try:
-            if line.startswith('/dev/'):
-                disk = line.replace('\r','').replace('\n','')
-                for p in disk_patterns:
-                    if disk.endswith(p):
-                        N[node]['disks'][p] = round(float(disk.split(' ')[-2].replace('%','')),rounding)
-        except Exception as E:
-            N[node]['err']['disks'] = E.message
-            pass
-    if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
-    client.close()
-    return N
-
-#----------------------------------------------------
-#remote/parimiko version of command dispatcher tool--
-#best for lightweight I/O----------------------------
-def remote_command_runner(cx,node,cmd,verbose=False):
-    C = {'out':'','err':''}
-    client=paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
-    if not args.sudo: command = "ssh %s -t '%s'"%(node,cmd)
-    else:             command = "ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)
-    stdin, stdout, stderr = client.exec_command(command)
-    for line in stdout: C['out'] += line
-    if verbose:
-        for line in stderr: C['err'] += line.replace('\n','')
-    client.close()
-    return C
-
-def remote_flush_cache(cx,node,verbose=False):
-    C = {'out':'','err':''}
-    client = paramiko.SSHClient()
-    client.load_system_host_keys()
-    client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
-    cmd = utils.path()+'flush.sh'
-    command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
-    stdin,stdout,stderr = client.exec_command(command)
-    for line in stdout: C['out'] += line
-    if verbose:
-        for line in stderr: C['err'] += line.replace('\n','')
-    if C['err'] == '': C.pop('err')
-    client.close()
-    return C
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of get resources, has no restrictions on I/O and time[[[[[[[[[
@@ -249,7 +140,6 @@ parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
 parser.add_argument('--targets',type=str,help='comma seperated list of host targets\t[/etc/hosts file from head]')
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
-parser.add_argument('--remote',action='store_true',help='perform ssh to remote host before dispatch\t[False]')
 parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
 parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
@@ -337,18 +227,11 @@ if __name__=='__main__':
         print('checking prior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
-        if args.remote:#---------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:#-------------------------------------------------------------
-            for node in nodes:
-                p1.apply_async(get_resources,
-                               args=(node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:
+            p1.apply_async(get_resources,
+                           args=(node,['/','/data'],(not args.verbose),2),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         try:
@@ -364,18 +247,11 @@ if __name__=='__main__':
         p1 = mp.Pool(threads)
         print(s)
         s = ''
-        if args.remote:#----------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_command_runner,
-                               args=(cx,node,cmd,(not args.verbose)),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:#--------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(command_runner,
-                               args=(cx,node,cmd,None,(not args.verbose)),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:  # each site in ||
+            p1.apply_async(command_runner,
+                           args=(cx,node,cmd,None,(not args.verbose)),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         try:
@@ -388,18 +264,11 @@ if __name__=='__main__':
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
-        if args.remote:  #---------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_flush_cache,
-                               args=(cx,node),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:  #-------------------------------------------------------------
-            for node in nodes:
-                p1.apply_async(flush_cache,
-                               args=(cx,node),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:
+            p1.apply_async(flush_cache,
+                           args=(cx,node),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         for l in result_list: R += [l]
@@ -408,18 +277,11 @@ if __name__=='__main__':
         print('checking posterior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
-        if args.remote:#---------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:#-------------------------------------------------------------
-            for node in nodes:
-                p1.apply_async(get_resources,
-                               args=(node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:
+            p1.apply_async(get_resources,
+                           args=(node,['/','/data'],(not args.verbose),2),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         try:

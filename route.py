@@ -6,7 +6,6 @@ import time
 import getpass
 import argparse
 import socket
-import logging
 import subprocess32 as subprocess
 import multiprocessing.dummy as mp
 import utils
@@ -17,7 +16,8 @@ import utils
 def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     N[node]['err'] = {}
-    check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
+    check = 'top -d 0.5 -n 5 | grep "Cpu" | tail -n 1 && '+\
+            'top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
@@ -138,7 +138,7 @@ parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTex
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
 parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
 parser.add_argument('--targets',type=str,help='comma seperated list of host targets\t[/etc/hosts file from head]')
-parser.add_argument('--commands',type=str,help='command to dispatch\t\t\t[ls -lh]')
+parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
 parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
@@ -162,8 +162,8 @@ elif os.path.exists('/etc/hosts'):
     nodes = None
 else:
     raise IOError
-if args.commands is not None:
-    cmd = args.commands.split(',')
+if args.command is not None:
+    cmd = args.command
 else:
     cmd = None
 
@@ -227,18 +227,11 @@ if __name__=='__main__':
         print('checking prior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
-        if args.remote:#---------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:#-------------------------------------------------------------
-            for node in nodes:
-                p1.apply_async(get_resources,
-                               args=(node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:
+            p1.apply_async(get_resources,
+                           args=(node,['/','/data'],(not args.verbose),2),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         try:
@@ -254,18 +247,11 @@ if __name__=='__main__':
         p1 = mp.Pool(threads)
         print(s)
         s = ''
-        if args.remote:#----------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_command_runner,
-                               args=(cx,node,cmd,(not args.verbose)),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:#--------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(command_runner,
-                               args=(cx,node,cmd,None,(not args.verbose)),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:  # each site in ||
+            p1.apply_async(command_runner,
+                           args=(cx,node,cmd,None,(not args.verbose)),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         try:
@@ -278,18 +264,11 @@ if __name__=='__main__':
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
-        if args.remote:  #---------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_flush_cache,
-                               args=(cx,node),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:  #-------------------------------------------------------------
-            for node in nodes:
-                p1.apply_async(flush_cache,
-                               args=(cx,node),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:
+            p1.apply_async(flush_cache,
+                           args=(cx,node),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         for l in result_list: R += [l]
@@ -298,18 +277,11 @@ if __name__=='__main__':
         print('checking posterior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
         p1 = mp.Pool(threads)
-        if args.remote:#---------------------------------------------------
-            for node in nodes:  # each site in ||
-                p1.apply_async(remote_get_resources,
-                               args=(cx,node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
-        else:#-------------------------------------------------------------
-            for node in nodes:
-                p1.apply_async(get_resources,
-                               args=(node,['/','/data'],(not args.verbose),2),
-                               callback=collect_results)
-                time.sleep(0.1)
+        for node in nodes:
+            p1.apply_async(get_resources,
+                           args=(node,['/','/data'],(not args.verbose),2),
+                           callback=collect_results)
+            time.sleep(0.1)
         p1.close()
         p1.join()
         try:
