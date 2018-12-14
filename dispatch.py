@@ -179,7 +179,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             pass
     if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
     else:                    N[node].pop('err')
-    return {'status':N}
+    return N
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of command dispatcher[[[[[[[[[[[[[[[[[[[
@@ -208,7 +208,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
         R[node]['err']['message'] = E.message
         R[node]['err']['code']    = E.errno
     if R[node]['err'] == {}: R[node].pop('err')
-    return {'cmd':R}
+    return R
 
 def flush_cache(cx,node):
     cmd = utils.path()+'flush.sh'
@@ -228,7 +228,7 @@ def flush_cache(cx,node):
         R[node]['err']['message'] = E.message
         R[node]['err']['code']    = E.errno
     if R[node]['err'] == {}: R[node].pop('err')
-    return {'flush':R}
+    return R
 
 #puts data back together
 result_list = [] #async queue to put results for || stages
@@ -350,13 +350,13 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
-        #collect results---------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
+        #collect results---------------------------------------------------------
+        for l in result_list: R += [l]
+        result_list = []
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
@@ -377,14 +377,14 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
-        #collect results----------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
-        print(R)
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
+        #collect results----------------------------------------------------------
+        for l in result_list: R += [l]
+        result_list = []
+        print(R)
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
@@ -422,15 +422,15 @@ if __name__=='__main__':
                 time.sleep(0.1)
         p1.close()
         p1.join()
-        #collect results---------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
+        for l in result_list: R += [l]
+        result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        print(R)
         S = {}
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
