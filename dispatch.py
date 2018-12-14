@@ -179,7 +179,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             pass
     if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
     else:                    N[node].pop('err')
-    return N
+    return {'status':N}
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of command dispatcher[[[[[[[[[[[[[[[[[[[
@@ -208,7 +208,7 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
         R[node]['err']['message'] = E.message
         R[node]['err']['code']    = E.errno
     if R[node]['err'] == {}: R[node].pop('err')
-    return R
+    return {'cmd':R}
 
 def flush_cache(cx,node):
     cmd = utils.path()+'flush.sh'
@@ -228,7 +228,7 @@ def flush_cache(cx,node):
         R[node]['err']['message'] = E.message
         R[node]['err']['code']    = E.errno
     if R[node]['err'] == {}: R[node].pop('err')
-    return R
+    return {'flush':R}
 
 #puts data back together
 result_list = [] #async queue to put results for || stages
