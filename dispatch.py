@@ -174,50 +174,34 @@ if __name__=='__main__':
     pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
     cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
     if nodes is None:
-        if args.remote:
-            #remote----------------------------------------------------------------------------------
-            client=paramiko.SSHClient()
-            client.load_system_host_keys()
-            client.connect(hostname=cx['host'],port=cx['port'],username=cx['uid'],password=cx['pwd'])
-            nodes = []
-            stdin,stdout,stderr = client.exec_command('cat /etc/hosts')
-            for line in stdout:
-                if line.find('::') < 0 and not line.startswith('#') and line != '\n':
-                    node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
-                    if node != head: nodes += [node]
-            nodes = sorted(nodes)
-            print('using nodes: %s'%nodes)
-            client.close()
-            #remote------------------------------------------------------------------------------------
-        else:
-            #local=====================================================================================
-            command = ['cat /etc/hosts']
-            H = {'out':'','err':{}}
-            try:
-                H['out'] = subprocess.check_output(' '.join(command),
-                                                   stderr=subprocess.STDOUT,
-                                                   shell=True)
-            except subprocess.CalledProcessError as E:
-                H['err']['output']   = E.output
-                H['err']['message']  = E.message
-                H['err']['code']     = E.returncode
-            except OSError as E:
-                H['err']['output']   = E.strerror
-                H['err']['message']  = E.message
-                H['err']['code']     = E.errno
-            nodes = []
-            for line in H['out'].split('\n'):
-                if line.find('::') < 0 and not line.startswith('#') and line != '\n' and line != '':
-                    node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
-                    if node != head: nodes += [node]
-            nodes = sorted(nodes)
-            try:
-                s=subprocess.check_output(['reset'],shell=True)
-            except subprocess.CalledProcessError as E:
-                pass
-            except OSError as E:
-                pass
-            #local=====================================================================================
+        #local=====================================================================================
+        command = ['cat /etc/hosts']
+        H = {'out':'','err':{}}
+        try:
+            H['out'] = subprocess.check_output(' '.join(command),
+                                               stderr=subprocess.STDOUT,
+                                               shell=True)
+        except subprocess.CalledProcessError as E:
+            H['err']['output']   = E.output
+            H['err']['message']  = E.message
+            H['err']['code']     = E.returncode
+        except OSError as E:
+            H['err']['output']   = E.strerror
+            H['err']['message']  = E.message
+            H['err']['code']     = E.errno
+        nodes = []
+        for line in H['out'].split('\n'):
+            if line.find('::') < 0 and not line.startswith('#') and line != '\n' and line != '':
+                node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
+                if node != head: nodes += [node]
+        nodes = sorted(nodes)
+        try:
+            s=subprocess.check_output(['reset'],shell=True)
+        except subprocess.CalledProcessError as E:
+            pass
+        except OSError as E:
+            pass
+        #local=====================================================================================
         time.sleep(0.1)
     N,R = {},[]
     if args.threads is not None: threads = args.threads
