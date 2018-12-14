@@ -125,7 +125,8 @@ def remote_flush_cache(cx,node,verbose=False):
 def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     N[node]['err'] = {}
-    check = 'top -n 1 | grep "Cpu" && top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
+    check = 'top -d 0.5 -n 5 | grep "Cpu" | tail -n 1 && '+\
+            'top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
