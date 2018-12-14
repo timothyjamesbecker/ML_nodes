@@ -380,6 +380,7 @@ if __name__=='__main__':
         #collect results----------------------------------------------------------
         for l in result_list: R += [l]
         result_list = []
+        print(R)
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
@@ -430,7 +431,6 @@ if __name__=='__main__':
         except OSError as E:                       pass
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        print(R)
         S = {}
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
