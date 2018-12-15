@@ -36,26 +36,28 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         R['err']['code']    = E.errno
     #parse and convert the resource query
     for line in R['out'].split('\n'):
+        line = line.replace('\x1b',' ').replace('(B',' ').replace('[m',' ').replace('[1m',' ').replace('[',' ')
         line = re.sub(' +',' ',line)
         try:
             if line.startswith('%Cpu(s)'):
-                idle_cpu       = round(100.0-float(line.split(',')[3].split(' ')[1]),rounding)
+                cleaned        = line.split(',')[3].strip(' ').split(' ')[1]),
+                idle_cpu       = round(100.0-float(cleaned,rounding)
                 N[node]['cpu'] = idle_cpu
         except Exception as E:
             N[node]['err']['cpu'] = E.message
             pass
         try:
             if line.startswith('KiB Mem'):
-                total_mem      = float(line.split(',')[0].split(' ')[3])
-                free_mem       = float(line.split(',')[1].split(' ')[1])
+                total_mem      = float(line.split(',')[0].strip(' ').split(' ')[4])
+                free_mem       = float(line.split(',')[1].strip(' ').split(' ')[1])
                 N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
         except Exception as E:
             N[node]['err']['mem'] = E.message
             pass
         try:
             if line.startswith('KiB Swap'):
-                total_swap      = float(line.split(',')[0].split(' ')[2])
-                free_swap       = float(line.split(',')[1].split(' ')[1])
+                total_swap      = float(line.split(',')[0].strip(' ').split(' ')[3])
+                free_swap       = float(line.split(',')[1].strip(' ').split(' ')[1])
                 N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
         except Exception as E:
             N[node]['err']['swap'] = E.message
