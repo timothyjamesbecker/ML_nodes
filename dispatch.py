@@ -41,7 +41,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         try:
             if line.startswith('%Cpu(s)'):
                 cleaned        = float(line.split(',')[3].strip(' ').split(' ')[1])
-                idle_cpu       = round(100.0-cleaned,rounding))
+                idle_cpu       = round(100.0-cleaned,rounding)
                 N[node]['cpu'] = idle_cpu
         except Exception as E:
             N[node]['err']['cpu'] = E.message
