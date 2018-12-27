@@ -13,14 +13,13 @@ import utils
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of get resources, has no restrictions on I/O and time[[[[[[[[[
 #best for long-running and I/O heavy work and extensible via screen[[[[[[[[[[
-def get_resources(node,disk_patterns=['/','/data'],check_temp=False,verbose=False,rounding=2):
+def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
     N = {node:{'cpu':0.0,'mem':0.0,'swap':0.0,'disks':{p:0.0 for p in disk_patterns}}}
     N[node]['err'] = {}
     check = 'top -d 0.25 -n 5 | grep "Cpu" | tail -n 1 && '+\
             'top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
-    if check_temp:
-        check += ' && sensors | grep "Core"'
+    check += ' && sensors | grep "Core"'
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
     try:
