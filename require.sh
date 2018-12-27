@@ -24,6 +24,7 @@ nano \
 screen \
 system-config-lvm \
 docker.io \
+lm-sensors \
 libffi6 \
 libffi-dev \
 libssl1.0.0 \
