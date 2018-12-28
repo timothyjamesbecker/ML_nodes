@@ -266,10 +266,6 @@ if __name__=='__main__':
         result_list = []
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
-        if values is not None:
-            if len(values) < nodes:
-                print('incorrect insertion values entered')
-                raise AttributeError
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
         p1 = mp.Pool(threads)
         print(s)
