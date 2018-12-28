@@ -90,7 +90,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         x,ks = 0.0,N[node]['core_temp'].keys()
         for k in ks:
             x += N[node]['core_temp'][k]
-            N[node].pop(k)
+            N[node]['core_temp'].pop(k)
         if len(ks)>0: x /= len(ks)
         N[node]['core_temp'] = x
     return {'status':N}
