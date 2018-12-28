@@ -160,6 +160,7 @@ parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTex
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
 parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
 parser.add_argument('--targets',type=str,help='comma seperated list of host targets\t[/etc/hosts file from head]')
+parser.add_argument('--values',type=str,help='comma seperated list of insertion values for ? chars')
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
@@ -188,6 +189,16 @@ if args.command is not None:
     cmd = args.command
 else:
     cmd = None
+
+# --values v1a:v2a,v2,v3, v1a is first done, then v2a is done
+if cmd is not None and args.values is not None:
+    V = []
+    values = args.values.split(',')
+    for v in values:
+        V += [v.split(';')] #in case of multiple value insertions
+    values = V
+else:
+    values = None
 
 if __name__=='__main__':
     start = time.time()
@@ -228,8 +239,12 @@ if __name__=='__main__':
         #local=====================================================================================
         time.sleep(0.1)
     N,R = {},[]
-    if args.threads is not None: threads = args.threads
-    else:                        threads = len(nodes)
+    if args.threads is not None:
+        threads = args.threads
+    elif values is not None:
+        threads = len(values)
+    else:
+        threads = len(nodes)
     print('using %s number of connection threads'%threads)
     if args.check_prior: #execute a resource check
         print('checking prior percent used resources on nodes: %s ..'%nodes)
@@ -251,13 +266,18 @@ if __name__=='__main__':
         result_list = []
     if cmd is not None:
         #dispatch the command to all nodes-------------------------------------
+        if values is not None:
+            if len(values) < nodes:
+                print('incorrect insertion values entered')
+                raise AttributeError
         s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
         p1 = mp.Pool(threads)
         print(s)
         s = ''
-        for node in nodes:  # each site in ||
+        for i in ranges(threads):  # each site in ||
+            print('thread=%s on node=%s'%(i,nodes[i%len(nodes)]))
             p1.apply_async(command_runner,
-                           args=(cx,node,cmd,None,(not args.verbose)),
+                           args=(cx,nodes[i%len(nodes)],cmd,None,(not args.verbose)),
                            callback=collect_results)
             time.sleep(0.1)
         p1.close()
