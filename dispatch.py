@@ -151,7 +151,7 @@ def collect_results(result):
 
 des = """
 -----------------------------------------------------------------------
-multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/14/2018\tTimothy James Becker
+multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/28/2018\tTimothy James Becker
 
 (1) use head,port,targets,remote to perform remote light-weight tasks
 (2) use command and sudo to run intensive screen attachable processess
