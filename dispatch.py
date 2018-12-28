@@ -40,7 +40,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
         line = line.replace('\x1b',' ').replace('(B',' ').replace('[m',' ').replace('[1m',' ').replace('[',' ')
         line = re.sub(' +',' ',line)
         try:
-            if line.startswith('%Cpu(s)'):
+            if line.upper().startswith('%CPU(S)'):
                 cleaned        = float(line.split(',')[3].strip(' ').split(' ')[1])
                 idle_cpu       = round(100.0-cleaned,rounding)
                 N[node]['cpu'] = idle_cpu
@@ -48,7 +48,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             N[node]['err']['cpu'] = E.message
             pass
         try:
-            if line.startswith('KiB Mem'):
+            if line.upper().startswith('KIB MEM'):
                 total_mem      = float(line.split(',')[0].strip(' ').split(' ')[4])
                 free_mem       = float(line.split(',')[1].strip(' ').split(' ')[1])
                 N[node]['mem'] = round(100.0*(1.0-free_mem/total_mem),rounding)
@@ -56,7 +56,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             N[node]['err']['mem'] = E.message
             pass
         try:
-            if line.startswith('KiB Swap'):
+            if line.upper().startswith('KIB SWAP'):
                 total_swap      = float(line.split(',')[0].strip(' ').split(' ')[3])
                 free_swap       = float(line.split(',')[1].strip(' ').split(' ')[1])
                 N[node]['swap'] = round(100.0-100.0*(free_swap/total_swap),rounding)
@@ -73,18 +73,26 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             N[node]['err']['disks'] = E.message
             pass
         try:
-            if line.startswith('Core'):
+            if line.upper().startswith('CORE'):
                 core = line.replace('\r','').replace('\n','')
-                if 'core_temp' in N[node]:
-                    N[node]['core_temp'] += [core]
+                core_numb = int(line.split(':')[0].replace(' ','').upper().split('CORE')[-1])
+                core_temp = float(re.sub(' +',' ',line).split(':')[-1].strip(' ').split(' ')[0].split('C')[0])
+                if 'core_temp' not in N[node]:
+                    N[node]['core_temp'] = {core_numb:core_temp}
                 else:
-                    N[node]['core_temp']  = [core]
-                #chop out the degree celsius per core, then average...
+                    N[node]['core_temp'][core_numb] = core_temp
         except Exception as E:
             N[node]['err'][''] = E.message
             pass
     if N[node]['err'] != {}: N[node]['err']['out'] = R['out']
     else:                    N[node].pop('err')
+    if 'core_temp' in N[node]:
+        x,ks = 0.0,N[node].keys()
+        for k in ks:
+            x += N[node]['core_temp'][k]
+            N[node].pop(k)
+        if len(ks)>0: x /= len(ks)
+        N[node]['core_temp'] = x
     return {'status':N}
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
@@ -183,9 +191,11 @@ else:
 
 if __name__=='__main__':
     start = time.time()
-    print('user:'),
-    uid = sys.stdin.readline().replace('\n','')
-    pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
+    uid,pwd = False,False
+    if args.sudo or args.flush:
+        print('user:'),
+        uid = sys.stdin.readline().replace('\n','')
+        pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
     cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
     if nodes is None:
         #local=====================================================================================
