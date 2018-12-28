@@ -270,7 +270,7 @@ if __name__=='__main__':
         p1 = mp.Pool(threads)
         print(s)
         s = ''
-        for i in ranges(threads):  # each site in ||
+        for i in range(threads):  # each site in ||
             if values is not None:
                 execute = cmd
                 for v in values[i]:
