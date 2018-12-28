@@ -275,9 +275,16 @@ if __name__=='__main__':
         print(s)
         s = ''
         for i in ranges(threads):  # each site in ||
-            print('thread=%s on node=%s'%(i,nodes[i%len(nodes)]))
+            if values is not None:
+                execute = cmd
+                for v in values[i]:
+                    x = cmd.find('?')
+                    if x > 0: execute = execute[:x]+v+execute[x+1:]
+            else:
+                execute = cmd
+            print('thread=%s on node=%s cmd=%'%(i,nodes[i%len(nodes)],execute))
             p1.apply_async(command_runner,
-                           args=(cx,nodes[i%len(nodes)],cmd,None,(not args.verbose)),
+                           args=(cx,nodes[i%len(nodes)],execute,None,(not args.verbose)),
                            callback=collect_results)
             time.sleep(0.1)
         p1.close()
