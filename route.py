@@ -15,9 +15,9 @@ import numpy as np
 #init---------------------------------------------------------------------------------------------
 des = """producer consumer pattern where producers can be more or less than consumer"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
-parser.add_argument('-h','--head',type=str,help='hostname of the head node\t[None]')
-parser.add_argument('-t','--threads',type=int,help='number of threads for hosts\t[#hosts]')
-parser.add_argument('-j','--jobs',type=int,help='number of jobs to be queued\t[#hosts x2]')
+parser.add_argument('--head',type=str,help='hostname of the head node\t[None]')
+parser.add_argument('--threads',type=int,help='number of threads for hosts\t[#hosts]')
+parser.add_argument('--jobs',type=int,help='number of jobs to be queued\t[#hosts x2]')
 args = parser.parse_args()
 #set number of threads to hosts:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if args.head is not None: head = args.head
