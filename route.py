@@ -1,5 +1,5 @@
+#!/usr/bin/env python
 #multi-threaded (producer-consumer) workflow tester
-
 import os
 import sys
 import copy
