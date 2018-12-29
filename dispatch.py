@@ -278,7 +278,6 @@ if __name__=='__main__':
                     if x > 0: execute = execute[:x]+v+execute[x+1:]
             else:
                 execute = cmd
-            print('thread=%s on node=%s cmd=%s'%(i,nodes[i%len(nodes)],execute))
             p1.apply_async(command_runner,
                            args=(cx,nodes[i%len(nodes)],execute,None,(not args.verbose)),
                            callback=collect_results)

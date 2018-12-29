@@ -108,4 +108,3 @@ if __name__=='__main__':
     R = []
     while not results.empty(): R += [results.get()]
     print(R)
-    
