@@ -56,18 +56,17 @@ if args.jobs is not None:    jobs = args.jobs
 else:                        jobs = threads*2
 #set threads to number of hosts:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-compute_nodes = [{'%s'%i:[0,0]} for i in nodes]  #nodeid:[number of successes, number of failures]
-work          = [{'cmd':'/media/nfs/data/software/ML_nodes/load.py -s 10 -l 4','values':[]} for i in range(jobs)]
+base          = '/media/nfs/data/software/ML_nodes/load.py -s 10 -l 4'
+work          = [{'jid':i,'cmd':base,'values':[]} for i in range(jobs)]
 tasks         = Queue.Queue(maxsize=jobs)
+results       = Queue.Queue(maxsize=jobs)
 #init---------------------------------------------------------------------------------------------
 
 #These are worker threads....
-def worker(host):
+def worker(node):
     while True:
-        node       = host.keys()[0]
-        status     = host[node]
-        task       = tasks.get()
-        cmd,values = task['cmd'],task['values']
+        task = tasks.get()
+        jid,cmd,values = task['jid'],task['cmd'],task['values']
         command = ["ssh %s -t '%s'"%(node,cmd)]
         out = ''
         try:
@@ -79,7 +78,7 @@ def worker(host):
             pass
         except OSError as E:
             out = E.message
-        print('node=%s out:%s'%(node,out))
+        results.put({'jid':jid,'node':node,'out':out})
         tasks.task_done()
 
 if __name__=='__main__':
@@ -87,13 +86,26 @@ if __name__=='__main__':
     t_start = time.time()
     #start up a thread for each reachable node.....................
     for i in range(threads):
-        t = threading.Thread(target=worker,args=(compute_nodes[i],))
+        print('starting thread on host=%s'%nodes[i])
+        t = threading.Thread(target=worker,args=(nodes[i],))
         t.daemon = True
         t.start()
     #because they want work, they are blocking on task.get() line 75
-    for i in range(threads): tasks.put(work[i])
+    for i in range(jobs):
+        print('queuing jid %s'%i)
+        tasks.put(work[i])
     #all blocked threads will grab up some work: load is multi-proccess 100% loading
     tasks.join()
+    try:
+        s = subprocess.check_output(['reset'],shell=True)
+    except subprocess.CalledProcessError as E:
+        pass
+    except OSError as E:
+        pass
     #block until all work is finished......................................................................
     t_stop = time.time()
     print("\nCompleted all jobs and returned to single execution in %s seconds"%round(t_stop-t_start,1))
+    R = []
+    while not results.empty(): R += [results.get()]
+    print(R)
+    
