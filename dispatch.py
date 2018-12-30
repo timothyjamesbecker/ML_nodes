@@ -226,6 +226,7 @@ if cmd is not None and args.values is not None:
     for v in values:
         V += [v.split(';')] #in case of multiple value insertions
     values = V
+    print(values)
 else:
     values = None
 
@@ -333,7 +334,7 @@ if __name__=='__main__':
         except OSError as E:                       pass
         while not results.empty(): R += [results.get()]
         for w in work:
-            print("jid=%s:%s"%(w['jid'],w['out']))
+            print("jid=%s:%s"%(w['jid'],inject_values(w['cmd'],w['values'])))
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
