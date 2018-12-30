@@ -226,7 +226,6 @@ if cmd is not None and args.values is not None:
     for v in values:
         V += [v.split(';')] #in case of multiple value insertions
     values = V
-    print(values)
 else:
     values = None
 
@@ -311,10 +310,10 @@ if __name__=='__main__':
         t_start = time.time()
 
         if args.sleep is not None:
-            work=[{'jid':i,'cmd':cmd,'values':values,'sleep':args.sleep} for i in range(jobs)]
+            work=[{'jid':i,'cmd':cmd,'values':values[i],'sleep':args.sleep} for i in range(jobs)]
 
         else:
-            work = [{'jid':i,'cmd':cmd,'values':values} for i in range(jobs)]
+            work = [{'jid':i,'cmd':cmd,'values':values[i]} for i in range(jobs)]
 
         #[1]master dispatch_tid.json which has {'work':work}
 
