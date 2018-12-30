@@ -372,6 +372,8 @@ if __name__=='__main__':
                 if 'jid' in r[t][n] and 'out' in r[t][n]:
                     if n in S[t]: S[t][n] += [r[t][n]]
                     else:         S[t][n]  = [r[t][n]]
+                else:
+                    S[t][n] = r[t][n]
             else:
                 if 'jid' in r[t][n] and 'out' in r[t][n]:
                     S[t] = {n:[r[t][n]]}
