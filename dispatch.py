@@ -370,7 +370,7 @@ if __name__=='__main__':
             n = r[t].keys()[0]
             if t in S:
                 if n in S[t] and 'jid' in S[t][n]: S[t][n] += [r[t][n]]
-                elif 'jid' in S[t][n]:             S[t][n]  = [r[t][n]]
+                elif 'jid' in r[t][n]:             S[t][n]  = [r[t][n]]
                 else: S[t][n] = r[t][n]
             else:
                 S[t]    = {n:r[t][n]}
