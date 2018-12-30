@@ -351,7 +351,7 @@ if __name__=='__main__':
             t = threading.Thread(target=worker,args=(cx,nodes[i]))
             t.daemon = True
             t.start()
-        for i in range(work):
+        for i in range(jobs):
             print('enqueuing jid %s'%i)
             tasks.put(work[i])
         tasks.join()
