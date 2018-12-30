@@ -25,7 +25,7 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
 
     #can check for .tid_nid_jid.json log file?
     #tid= YYYMMDD-HHMMSS
-    #test -e 20181230-145502_gaia-12-1.json && echo True || echo False
+    #test -e .dispatch_*_gaia-12-*.json && echo True || echo False
 
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
