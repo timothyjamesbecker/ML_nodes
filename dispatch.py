@@ -365,12 +365,13 @@ if __name__=='__main__':
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         S,padding = {},40
+        print(R)
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
             n = r[t].keys()[0]
             if t in S:
                 if n in S[t] and 'jid' in S[t][n]: S[t][n] += [r[t][n]]
-                elif 'jid' in r[t][n]:             S[t][n]  = [r[t][n]]
+                elif 'jid' in S[t][n]:             S[t][n]  = [r[t][n]]
                 else: S[t][n] = r[t][n]
             else:
                 S[t]    = {n:r[t][n]}
