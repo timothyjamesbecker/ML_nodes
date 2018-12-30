@@ -6,6 +6,8 @@ import time
 import getpass
 import argparse
 import socket
+import threading
+import Queue
 import subprocess32 as subprocess
 import multiprocessing.dummy as mp
 import utils
@@ -124,6 +126,43 @@ def command_runner(cx,node,cmd,env=None,verbose=False):
     if R[node]['err'] == {}: R[node].pop('err')
     return {'cmd':R}
 
+#cmd is actual a command queue called tasks now...
+def worker(cx,node,env=None,verbose=False):
+    while True:
+        task = tasks.get()
+        jid,cmd,values = task['jid'],task['cmd'],task['values']
+        cmd = inject_values(cmd,values)
+
+        if not args.sudo:
+            command = ["ssh %s -t '%s'"%(node,cmd)]
+        else:
+            command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
+        R = {node:{'out':'','err':{}}}
+        try:
+            if env is None:
+                R[node]['out'] = subprocess.check_output(' '.join(command),
+                                                         stderr=subprocess.STDOUT,
+                                                         shell=True)
+            else:
+                R[node]['out'] = subprocess.check_output(' '.join(command),
+                                                         stderr=subprocess.STDOUT,
+                                                         shell=True,
+                                                         env=env)
+            R[node]['out'] = R[node]['out'].decode('unicode_escape').encode('ascii','ignore')
+        except subprocess.CalledProcessError as E:
+            R[node]['err']['output']  = E.output
+            R[node]['err']['message'] = E.message
+            R[node]['err']['code']    = E.returncode
+        except OSError as E:
+            R[node]['err']['output']  = E.strerror
+            R[node]['err']['message'] = E.message
+            R[node]['err']['code']    = E.errno
+        if R[node]['err']=={}: R[node].pop('err')
+
+        results.put({'jid':jid,'node':node,'out':R})
+        if 'sleep' in task: time.sleep(task['sleep']) #cool down or rest node for some time in sec
+        tasks.task_done() #this will release the task and get a new one if not empty
+
 def flush_cache(cx,node):
     cmd = utils.path()+'flush.sh'
     command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
@@ -144,10 +183,14 @@ def flush_cache(cx,node):
     if R[node]['err'] == {}: R[node].pop('err')
     return {'flush':R}
 
-#puts data back together
-result_list = [] #async queue to put results for || stages
-def collect_results(result):
-    result_list.append(result)
+#values can be int,float,str,boolean, etc
+def inject_values(cmd,values,delim='?'):
+    execute = cmd
+    if values is not None:
+        for v in values[i]:     #can have multiple value positions
+            x = cmd.find(delim) #replace one at a time
+            if x>0: execute = execute[:x]+v+execute[x+1:]
+    return execute
 
 des = """
 -----------------------------------------------------------------------
@@ -160,12 +203,12 @@ parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTex
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
 parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
 parser.add_argument('--targets',type=str,help='comma seperated list of host targets\t[/etc/hosts file from head]')
+parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--values',type=str,help='comma seperated list of insertion values for ? chars')
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
 parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
-parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[True]')
 args = parser.parse_args()
 
@@ -189,7 +232,6 @@ if args.command is not None:
     cmd = args.command
 else:
     cmd = None
-
 # --values v1a:v2a,v2,v3, v1a is first done, then v2a is done
 if cmd is not None and args.values is not None:
     V = []
@@ -200,52 +242,61 @@ if cmd is not None and args.values is not None:
 else:
     values = None
 
+uid,pwd = False,False
+if args.sudo or args.flush:
+    print('user:'),
+    uid = sys.stdin.readline().replace('\n','')
+    pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
+cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
+if nodes is None:
+    #local=====================================================================================
+    command = ['cat /etc/hosts']
+    H = {'out':'','err':{}}
+    try:
+        H['out'] = subprocess.check_output(' '.join(command),
+                                           stderr=subprocess.STDOUT,
+                                           shell=True)
+    except subprocess.CalledProcessError as E:
+        H['err']['output']   = E.output
+        H['err']['message']  = E.message
+        H['err']['code']     = E.returncode
+    except OSError as E:
+        H['err']['output']   = E.strerror
+        H['err']['message']  = E.message
+        H['err']['code']     = E.errno
+    nodes = []
+    for line in H['out'].split('\n'):
+        if line.find('::') < 0 and not line.startswith('#') and line != '\n' and line != '':
+            node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
+            if node != head: nodes += [node]
+    nodes = sorted(nodes)
+    try:
+        s = subprocess.check_output(['reset'],shell=True)
+    except subprocess.CalledProcessError as E:
+        pass
+    except OSError as E:
+        pass
+    #local=====================================================================================
+    time.sleep(0.1)
+N,R,threads,jobs = {},[],1,1 #jobs are queued when > threads
+if args.threads is not None: threads = args.threads
+else:                        threads = len(nodes)
+if values is not None:       jobs = len(values)
+else:                        jobs = threads
+print('using %s number of connection threads'%threads)
+print('for %s number of compute jobs'%jobs)
+
+#global data structures for synchronization patterns------
+result_list = [] #async queue to put results for || stages
+results     = Queue.Queue(maxsize=jobs)
+tasks       = Queue.Queue(maxsize=jobs)
+def collect_results(result):
+    result_list.append(result)
+#gloabl data structures for synchronization patterns------
+
 if __name__=='__main__':
     start = time.time()
-    uid,pwd = False,False
-    if args.sudo or args.flush:
-        print('user:'),
-        uid = sys.stdin.readline().replace('\n','')
-        pwd = getpass.getpass(prompt='pwd: ',stream=None).replace('\n','')
-    cx = {'host':head+domain,'port':port,'uid':uid,'pwd':pwd}
-    if nodes is None:
-        #local=====================================================================================
-        command = ['cat /etc/hosts']
-        H = {'out':'','err':{}}
-        try:
-            H['out'] = subprocess.check_output(' '.join(command),
-                                               stderr=subprocess.STDOUT,
-                                               shell=True)
-        except subprocess.CalledProcessError as E:
-            H['err']['output']   = E.output
-            H['err']['message']  = E.message
-            H['err']['code']     = E.returncode
-        except OSError as E:
-            H['err']['output']   = E.strerror
-            H['err']['message']  = E.message
-            H['err']['code']     = E.errno
-        nodes = []
-        for line in H['out'].split('\n'):
-            if line.find('::') < 0 and not line.startswith('#') and line != '\n' and line != '':
-                node = line.split(' ')[-1].split('\t')[-1].replace('\n','')
-                if node != head: nodes += [node]
-        nodes = sorted(nodes)
-        try:
-            s=subprocess.check_output(['reset'],shell=True)
-        except subprocess.CalledProcessError as E:
-            pass
-        except OSError as E:
-            pass
-        #local=====================================================================================
-        time.sleep(0.1)
-    N,R = {},[]
-    if args.threads is not None:
-        threads = args.threads
-    elif values is not None:
-        threads = len(values)
-    else:
-        threads = len(nodes)
-    print('using %s number of connection threads'%threads)
+
     if args.check_prior: #execute a resource check
         print('checking prior percent used resources on nodes: %s ..'%nodes)
         #dispatch resource checks to all nodes-------------------------------------
@@ -265,32 +316,52 @@ if __name__=='__main__':
         for l in result_list: R += [l]
         result_list = []
     if cmd is not None:
+        t_start = time.time()
         #dispatch the command to all nodes-------------------------------------
-        s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
-        p1 = mp.Pool(threads)
-        print(s)
-        s = ''
-        for i in range(threads):  # each site in ||
-            if values is not None:
-                execute = cmd
-                for v in values[i]:
-                    x = cmd.find('?')
-                    if x > 0: execute = execute[:x]+v+execute[x+1:]
-            else:
-                execute = cmd
-            p1.apply_async(command_runner,
-                           args=(cx,nodes[i%len(nodes)],execute,None,(not args.verbose)),
-                           callback=collect_results)
-            time.sleep(0.1)
-        p1.close()
-        p1.join()
+        # s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
+        # print(s)
+        # p1 = mp.Pool(threads)
+        # s = ''
+        # for i in range(threads):  # each site in ||
+        #     if values is not None:
+        #         execute = cmd
+        #         for v in values[i]:
+        #             x = cmd.find('?')
+        #             if x > 0: execute = execute[:x]+v+execute[x+1:]
+        #     else:
+        #         execute = cmd
+        #     p1.apply_async(command_runner,
+        #                    args=(cx,nodes[i%len(nodes)],execute,None,(not args.verbose)),
+        #                    callback=collect_results)
+        #     time.sleep(0.1)
+        # p1.close()
+        # p1.join()
+        # try:
+        #     s = subprocess.check_output(['reset'],shell=True)
+        # except subprocess.CalledProcessError as E: pass
+        # except OSError as E:                       pass
+        # #collect results----------------------------------------------------------
+        # for l in result_list: R += [l]
+        # result_list = []
+
+        work = [{'jid':i,'cmd':cmd,'values':values} for i in range(jobs)]
+
+        for i in range(threads):
+            print('starting remote control thread for host=%s'%nodes[i])
+            t = threading.Thread(target=worker,args=(cx,nodes[i]))
+            t.daemon = True
+            t.start()
+        for i in range(work):
+            print('enqueuing jid %s'%i)
+            tasks.put(work[i])
+        tasks.join()
+        t_stop = time.time()
         try:
             s = subprocess.check_output(['reset'],shell=True)
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
-        #collect results----------------------------------------------------------
-        for l in result_list: R += [l]
-        result_list = []
+        while not results.empty(): R += [results.get()]
+
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
@@ -322,7 +393,7 @@ if __name__=='__main__':
         result_list = []
     stop = time.time()
     if not args.verbose:#<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        S,padding = {},38
+        S,padding = {},40
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
             n = r[t].keys()[0]
