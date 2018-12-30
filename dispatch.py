@@ -370,11 +370,14 @@ if __name__=='__main__':
             t = r.keys()[0]
             n = r[t].keys()[0]
             if t in S:
-                if n in S[t] and 'jid' in S[t][n]: S[t][n] += [r[t][n]]
-                elif 'jid' in S[t][n]:             S[t][n]  = [r[t][n]]
-                else: S[t][n] = r[t][n]
+                if 'jid' in r[t][n] and 'out' in r[t][n]:
+                    if n in S[t]: S[t][n] += [r[t][n]]
+                    else:         S[t][n]  = [r[t][n]]
             else:
-                S[t]    = {n:r[t][n]}
+                if 'jid' in r[t][n] and 'out' in r[t][n]:
+                    S[t] = {n:[r[t][n]]}
+                else:
+                    S[t] = {n:r[t][n]}
         for t in sorted(S.keys()): #cmd, flush, status
             print(''.join(['<' for i in range(padding)])+'results for %s'%t+''.join(['>' for i in range(padding)]))
             for n in sorted(S[t].keys()):
