@@ -332,7 +332,8 @@ if __name__=='__main__':
         except subprocess.CalledProcessError as E: pass
         except OSError as E:                       pass
         while not results.empty(): R += [results.get()]
-
+        for w in work:
+            print("jid=%s:%s"%(w['jid'],w['out']))
     if args.flush:
         print('flushing caches to clear free memory...')
         p1 = mp.Pool(threads)
