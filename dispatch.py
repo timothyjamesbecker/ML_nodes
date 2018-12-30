@@ -137,7 +137,7 @@ def worker(cx,node,env=None,verbose=False):
             command = ["ssh %s -t '%s'"%(node,cmd)]
         else:
             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
-        R = {node:{'out':'','err':{}}}
+        R = {node:{'out':'','err':{},'jid':jid}}
         try:
             if env is None:
                 R[node]['out'] = subprocess.check_output(' '.join(command),
@@ -159,7 +159,7 @@ def worker(cx,node,env=None,verbose=False):
             R[node]['err']['code']    = E.errno
         if R[node]['err']=={}: R[node].pop('err')
 
-        results.put({'jid':jid,'node':node,'out':R})
+        results.put(R)
         if 'sleep' in task: time.sleep(task['sleep']) #cool down or rest node for some time in sec
         tasks.task_done() #this will release the task and get a new one if not empty
 
