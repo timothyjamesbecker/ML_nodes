@@ -159,7 +159,7 @@ def worker(cx,node,env=None,verbose=False):
             R[node]['err']['code']    = E.errno
         if R[node]['err']=={}: R[node].pop('err')
 
-        results.put(R)
+        results.put({'cmd':R})
         if 'sleep' in task: time.sleep(task['sleep']) #cool down or rest node for some time in sec
         tasks.task_done() #this will release the task and get a new one if not empty
 
@@ -402,6 +402,7 @@ if __name__=='__main__':
         for t in sorted(S.keys()): #cmd, flush, status
             print(''.join(['<' for i in range(padding)])+'results for %s'%t+''.join(['>' for i in range(padding)]))
             for n in sorted(S[t].keys()):
+                #R = {node:{'out':'','err':{},'jid':jid}}
                 if 'out' in S[t][n]:
                     out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n]['out'].replace('\r','')))
                     if out.endswith('\n'): out = out[:-1]
