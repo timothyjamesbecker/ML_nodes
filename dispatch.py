@@ -119,6 +119,7 @@ def command_runner(cx,node,env=None,verbose=False):
             command = ["ssh %s -t '%s'"%(node,cmd)]
         else:
             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
+
         R = {node:{'out':'','err':{},'jid':jid}}
         try:
             if env is None:
@@ -367,17 +368,21 @@ if __name__=='__main__':
         for r in R: #{'status':{'node':{outputs...}}}
             t = r.keys()[0]
             n = r[t].keys()[0]
-            if t in S: S[t][n] = r[t][n]
-            else:      S[t]    = {n:r[t][n]}
+            if t in S:
+                if n in S[t] and 'jid' in S[t][n]: S[t][n] += [r[t][n]]
+                elif 'jid' in S[t][n]:             S[t][n]  = [r[t][n]]
+                else: S[t][n] = r[t][n]
+            else:
+                S[t]    = {n:r[t][n]}
         for t in sorted(S.keys()): #cmd, flush, status
             print(''.join(['<' for i in range(padding)])+'results for %s'%t+''.join(['>' for i in range(padding)]))
             for n in sorted(S[t].keys()):
-                #R = {node:{'out':'','err':{},'jid':jid}}
-                if 'out' in S[t][n]:
-                    out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n]['out'].replace('\r','')))
-                    if out.endswith('\n'): out = out[:-1]
-                    print('%s:\n%s'%(''.join([':' for i in range(padding)])+\
-                                     n+''.join([':' for i in range(padding)]),out))
+                if type(S[t][n]) is list and 'out' in S[t][n][0]:
+                    for j in range(len(S[t][n])):
+                        out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n][j]['out'].replace('\r','')))
+                        if out.endswith('\n'): out = out[:-1]
+                        print('%s:\n%s'%(''.join([':' for i in range(padding)])+\
+                                         n+''.join([':' for i in range(padding)]),out))
                 else:
                     print('%s: %s'%(n,S[t][n]))
         print('processing completed in %s sec'%round(stop-start,2))
