@@ -313,12 +313,12 @@ if __name__=='__main__':
 
         else:
             work = [{'jid':i,'cmd':cmd,'values':values} for i in range(jobs)]
-            
+
         #[1]master dispatch_tid.json which has {'work':work}
 
         for i in range(threads):
             print('starting remote control thread for host=%s'%nodes[i])
-            t = threading.Thread(target=worker,args=(cx,nodes[i]))
+            t = threading.Thread(target=command_runner,args=(cx,nodes[i]))
             t.daemon = True
             t.start()
         for i in range(jobs):
