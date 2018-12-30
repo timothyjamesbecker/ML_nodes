@@ -174,7 +174,7 @@ def inject_values(cmd,values,delim='?'):
     execute = cmd
     if values is not None:
         if type(values) is list:
-            for v in values[i]:     #can have multiple value positions
+            for v in values:     #can have multiple value positions
                 x = cmd.find(delim) #replace one at a time
                 if x>0: execute = execute[:x]+v+execute[x+1:]
         else:
