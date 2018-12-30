@@ -22,6 +22,11 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
             'top -n 1 | grep "KiB Mem" && top -n 1 | grep "KiB Swap"'
     check += ' && '+' && '.join(['df -h | grep %s'%p for p in disk_patterns])
     check += ' && sensors | grep "Core"'
+
+    #can check for .tid_nid_jid.json log file?
+    #tid= YYYMMDD-HHMMSS
+    #test -e 20181230-145502_gaia-12-1.json && echo True || echo False
+
     command = ["ssh %s -t '%s'"%(node,check)]
     R = {'out':'','err':{}}
     try:
@@ -100,38 +105,15 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of command dispatcher[[[[[[[[[[[[[[[[[[[
 #best for long running I/O and unrestricted use[[[[[[[[
-def command_runner(cx,node,cmd,env=None,verbose=False):
-    if not args.sudo: command = ["ssh %s -t '%s'"%(node,cmd)]
-    else:             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
-    R = {node:{'out':'','err':{}}}
-    try:
-        if env is None:
-            R[node]['out'] = subprocess.check_output(' '.join(command),
-                                                     stderr=subprocess.STDOUT,
-                                                     shell=True)
-        else:
-            R[node]['out'] = subprocess.check_output(' '.join(command),
-                                                     stderr=subprocess.STDOUT,
-                                                     shell=True,
-                                                     env=env)
-        R[node]['out'] = R[node]['out'].decode('unicode_escape').encode('ascii','ignore')
-    except subprocess.CalledProcessError as E:
-        R[node]['err']['output']  = E.output
-        R[node]['err']['message'] = E.message
-        R[node]['err']['code']    = E.returncode
-    except OSError as E:
-        R[node]['err']['output']  = E.strerror
-        R[node]['err']['message'] = E.message
-        R[node]['err']['code']    = E.errno
-    if R[node]['err'] == {}: R[node].pop('err')
-    return {'cmd':R}
-
 #cmd is actual a command queue called tasks now...
-def worker(cx,node,env=None,verbose=False):
+def command_runner(cx,node,env=None,verbose=False):
     while True:
         task = tasks.get()
         jid,cmd,values = task['jid'],task['cmd'],task['values']
         cmd = inject_values(cmd,values)
+
+        #write to .tid_nid_jid.json log file
+        #["ssh -t 'touch .tid_nid_jid.json'"]
 
         if not args.sudo:
             command = ["ssh %s -t '%s'"%(node,cmd)]
@@ -158,6 +140,9 @@ def worker(cx,node,env=None,verbose=False):
             R[node]['err']['message'] = E.message
             R[node]['err']['code']    = E.errno
         if R[node]['err']=={}: R[node].pop('err')
+
+        #execution is finished so delete the .tid_nid_jid.json log file
+        # ["ssh -t 'rm .tid_nid_jid.json'"]
 
         results.put({'cmd':R})
         if 'sleep' in task: time.sleep(task['sleep']) #cool down or rest node for some time in sec
@@ -193,12 +178,12 @@ def inject_values(cmd,values,delim='?'):
     return execute
 
 des = """
------------------------------------------------------------------------
-multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/28/2018\tTimothy James Becker
+-------------------------------------------------------------------------------
+multi-node  ssh/process based multithreaded dispatching client\n11/18/2018-12/30/2018\tTimothy James Becker
 
-(1) use head,port,targets,remote to perform remote light-weight tasks
-(2) use command and sudo to run intensive screen attachable processess
------------------------------------------------------------------------"""
+(1) use head,port,targets,values to dispatch similiar commands to targets
+(2) when values is larger than #hosts, they are queued automatically async
+-------------------------------------------------------------------------------"""
 parser = argparse.ArgumentParser(description=des,formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('--head',type=str,help='hostname of headnode\t\t\t[None]')
 parser.add_argument('--port',type=int,help='command port\t\t\t\t[22]')
@@ -206,9 +191,10 @@ parser.add_argument('--targets',type=str,help='comma seperated list of host targ
 parser.add_argument('--threads',type=int,help='change the default number of threads\t[#targets]')
 parser.add_argument('--values',type=str,help='comma seperated list of insertion values for ? chars')
 parser.add_argument('--command',type=str,help='command to dispatch\t\t\t[ls -lh]')
+parser.add_argument('--sleep',type=int,help='sleep interval between task allocation\t[None]')
 parser.add_argument('--sudo',action='store_true',help='elevate the remote dispatched commands\t[False]')
 parser.add_argument('--check_prior',action='store_true',help='check cpu,mem,swap,disk prior to command\t[False]')
-parser.add_argument('--flush',action='store_true',help='flush disk caches after large file I/O\t[False]')
+parser.add_argument('--flush',action='store_true',help='flush caches/containers after I|O/jobs\t[False]')
 parser.add_argument('--verbose',action='store_true',help='output more results to stdout\t\t[True]')
 args = parser.parse_args()
 
@@ -315,36 +301,20 @@ if __name__=='__main__':
         #collect results---------------------------------------------------------
         for l in result_list: R += [l]
         result_list = []
+
+        #look at cpu and top search for python to see if other things are running?
+        #look at secret log file that gets generated for each jid....
+
     if cmd is not None:
         t_start = time.time()
-        #dispatch the command to all nodes-------------------------------------
-        # s = '\n'.join(['dispatching work for %s'%node for node in nodes])+'\n'
-        # print(s)
-        # p1 = mp.Pool(threads)
-        # s = ''
-        # for i in range(threads):  # each site in ||
-        #     if values is not None:
-        #         execute = cmd
-        #         for v in values[i]:
-        #             x = cmd.find('?')
-        #             if x > 0: execute = execute[:x]+v+execute[x+1:]
-        #     else:
-        #         execute = cmd
-        #     p1.apply_async(command_runner,
-        #                    args=(cx,nodes[i%len(nodes)],execute,None,(not args.verbose)),
-        #                    callback=collect_results)
-        #     time.sleep(0.1)
-        # p1.close()
-        # p1.join()
-        # try:
-        #     s = subprocess.check_output(['reset'],shell=True)
-        # except subprocess.CalledProcessError as E: pass
-        # except OSError as E:                       pass
-        # #collect results----------------------------------------------------------
-        # for l in result_list: R += [l]
-        # result_list = []
 
-        work = [{'jid':i,'cmd':cmd,'values':values} for i in range(jobs)]
+        if args.sleep is not None:
+            work=[{'jid':i,'cmd':cmd,'values':values,'sleep':args.sleep} for i in range(jobs)]
+
+        else:
+            work = [{'jid':i,'cmd':cmd,'values':values} for i in range(jobs)]
+            
+        #[1]master dispatch_tid.json which has {'work':work}
 
         for i in range(threads):
             print('starting remote control thread for host=%s'%nodes[i])
