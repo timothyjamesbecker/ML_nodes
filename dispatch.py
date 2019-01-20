@@ -137,7 +137,6 @@ def command_runner(cx,node,env=None,verbose=False):
             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
 
         R = {node:{'out':'','err':{},'jid':jid}}
-        print('starting jid%s'%jid)
         try:
             if env is None:
                 R[node]['out'] = subprocess.check_output(' '.join(command),
@@ -203,10 +202,10 @@ def inject_values(cmd,values,delim='?'):
     if values is not None:
         if type(values) is list:
             for v in values:     #can have multiple value positions
-                x = cmd.find(delim) #replace one at a time
+                x = execute.find(delim) #replace one at a time
                 if x>0: execute = execute[:x]+v+execute[x+1:]
         else:
-            x = cmd.find(delim)  #replace one at a time
+            x = excute.find(delim)  #replace one at a time
             if x>0: execute = execute[:x]+values+execute[x+1:]
     return execute
 
