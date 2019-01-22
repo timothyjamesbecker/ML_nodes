@@ -4,6 +4,7 @@ import sys
 import re
 import time
 import getpass
+import glob
 import argparse
 import socket
 import threading
@@ -106,14 +107,36 @@ def get_resources(node,disk_patterns=['/','/data'],verbose=False,rounding=2):
 #local version of command dispatcher[[[[[[[[[[[[[[[[[[[
 #best for long running I/O and unrestricted use[[[[[[[[
 #cmd is actual a command queue called tasks now...
-def command_runner(cx,node,env=None,verbose=False):
+def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
     while True:
         #[1] first each job tries to get an execution semaphore
         task = tasks.get() #can be less than #jobs
-
         jid,cmd,values,in_data,out_data = task['jid'],task['cmd'],task['values'],task['in_data'],task['out_data']
-        cmd = inject_values(cmd,values)
 
+        cmd = re.sub(' +',' ',cmd.replace('\n',' ').replace('\r',' '))
+        cmd = inject_values(cmd,values,delim=delim)
+        #[1B] resolve wildcards if needed
+        if cmd.find(wild)>0:
+            comp = cmd.split(' ')
+            for i in range(len(comp)):
+                if comp[i].find(wild)>0:
+                    x,cmp = 0,[]
+                    for j in range(len(comp[i])):
+                        if comp[i][j]==',' or comp[i][j]==';' or comp[i][j]==':':
+                            cmp += [{comp[i][j]:comp[i][x:j]}]
+                            x = j+1
+                    if len(cmp)<1: cmp += [{'':comp[i]}]
+                    command = ''
+                    for c in cmp:
+                        out = ''
+                        try:
+                            out = subprocess.check_output("ssh %s -t 'ls %s'"%(node,c[c.keys()[0]]),shell=True)
+                        except Exception as E: pass
+                        if out!='':
+                            out = re.sub(' +',' ',out).replace('\n','').replace('\r','')
+                            command += sorted(out.split(' '))[0]+c.keys()[0]
+                        else:
+                            command += c[c.keys()[0]]+c.keys()[0]
         #[2] second get a transfer semaphore if needed
         if in_data is not None:
             trans_cmd = ["rsync -aP %s %s"%(in_data[0],in_data[1])]
@@ -210,6 +233,9 @@ def inject_values(cmd,values,delim='?'):
             x = excute.find(delim)  #replace one at a time
             if x>0: execute = execute[:x]+values+execute[x+1:]
     return execute
+
+def resolve_wildcards(cmd,wild):
+    return True
 
 des = """
 -------------------------------------------------------------------------------
