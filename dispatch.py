@@ -141,11 +141,13 @@ def command_runner(cx,node,env=None,verbose=False):
             if env is None:
                 R[node]['out'] = subprocess.check_output(' '.join(command),
                                                          stderr=subprocess.STDOUT,
-                                                         shell=True)
+                                                         shell=True,
+                                                         executable='/bin/bash')
             else:
                 R[node]['out'] = subprocess.check_output(' '.join(command),
                                                          stderr=subprocess.STDOUT,
                                                          shell=True,
+                                                         executable='/bin/bash',
                                                          env=env)
             R[node]['out'] = R[node]['out'].decode('unicode_escape').encode('ascii','ignore')
         except subprocess.CalledProcessError as E:
