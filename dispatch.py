@@ -11,7 +11,6 @@ import threading
 import Queue
 import subprocess32 as subprocess
 import multiprocessing.dummy as mp
-import utils
 
 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 #local version of get resources, has no restrictions on I/O and time[[[[[[[[[
