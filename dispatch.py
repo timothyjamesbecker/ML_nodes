@@ -168,9 +168,9 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
         if out_data is not None:
             trans_cmd = ["rsync -aP %s %s"%(out_data[0],out_data[1])]
             if not args.sudo:
-                command=["ssh %s -t '%s'"%(node,trans_cmd)]
+                command = ["ssh %s -t '%s'"%(node,trans_cmd)]
             else:
-                command=["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],trans_cmd)]
+                command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],trans_cmd)]
             out = ''
             try:
                 out = subprocess.check_output(' '.join(command),stderr=subprocess.STDOUT,shell=True)
