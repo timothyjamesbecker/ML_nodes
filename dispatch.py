@@ -126,7 +126,7 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
                             cmp += [{comp[i][j]:comp[i][x:j]}]
                             x = j+1
                     if len(cmp)<1: cmp += [{'':comp[i]}]
-                    command = ''
+                    cmd = ''
                     for c in cmp:
                         out = ''
                         try:
@@ -134,9 +134,9 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
                         except Exception as E: pass
                         if out!='':
                             out = re.sub(' +',' ',out).replace('\n','').replace('\r','')
-                            command += sorted(out.split(' '))[0]+c.keys()[0]
+                            cmd += sorted(out.split(' '))[0]+c.keys()[0]
                         else:
-                            command += c[c.keys()[0]]+c.keys()[0]
+                            cmd += c[c.keys()[0]]+c.keys()[0]
         #[2] second get a transfer semaphore if needed
         if in_data is not None:
             trans_cmd = ["rsync -aP %s %s"%(in_data[0],in_data[1])]
