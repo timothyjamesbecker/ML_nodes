@@ -15,6 +15,21 @@ A general purpose ssh based dispatch tool for running commands across several co
 ```bash
 ./dispatch.py
 ```
+which returns an output showing the status if you had eight nodes in addition to the head node:
+```bash
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<results for status>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+node1: {'mem': 64.33, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 6.57, 'core_temp': 46.5, 'cpu': 0.0}
+node2: {'mem': 64.63, 'disks': {'/data': 13.0, '/': 11.0}, 'swap': 6.19, 'core_temp': 46.5, 'cpu': 0.0}
+node3: {'mem': 65.63, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 2.61, 'core_temp': 45.5, 'cpu': 0.5}
+node4: {'mem': 66.11, 'disks': {'/data': 13.0, '/': 11.0}, 'swap': 2.62, 'core_temp': 46.75, 'cpu': 1.0}
+node5: {'mem': 66.12, 'disks': {'/data': 13.0, '/': 11.0}, 'swap': 2.55, 'core_temp': 47.0, 'cpu': 0.0}
+node6: {'mem': 64.33, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 2.69, 'core_temp': 45.5, 'cpu': 0.0}
+node7: {'mem': 64.74, 'disks': {'/data': 13.0, '/': 11.0}, 'swap': 2.88, 'core_temp': 46.75, 'cpu': 0.0}
+node8: {'mem': 65.69, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 2.56, 'core_temp': 46.25, 'cpu': 0.0}
+processing completed in 5.7 sec
+
+```
+mem, disks, swap and cpu are % utilized, while core_temp is degrees celsius
 
 #####execute the same command on node1,node2,node3 targets using sudo:
 ```bash
