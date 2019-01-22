@@ -215,16 +215,16 @@ def inject_values(cmd,values,delim='?'):
 
 def resolve_wildcards(cmd,node,wild='*'):
     if cmd.find(wild)>0:
-        comp = cmd.split(' ')
+        comp,command = cmd.split(' '),''
         for i in range(len(comp)):
             if comp[i].find(wild)>0:
-                x,cmp=0,[]
+                x,cmp = 0,[]
                 for j in range(len(comp[i])):
                     if comp[i][j]==',' or comp[i][j]==';' or comp[i][j]==':':
                         cmp += [{comp[i][j]:comp[i][x:j]}]
                         x = j+1
+                if x<j:        cmp += [{'':comp[i][x:j+1]}]
                 if len(cmp)<1: cmp += [{'':comp[i]}]
-                cmd=''
                 for c in cmp:
                     out=''
                     try:
@@ -232,11 +232,12 @@ def resolve_wildcards(cmd,node,wild='*'):
                     except Exception as E:
                         pass
                     if out!='':
-                        out = re.sub(' +',' ',out).replace('\n','').replace('\r','')
-                        cmd += sorted(out.split(' '))[0]+c.keys()[0]
+                        out = re.sub(' +',' ',out.replace('\r',''))
+                        if out.endswith('\n'): out = out[:-1]
+                        command += out.rstrip('\n').split('\n')[0].split(' ')[0].rstrip(':')+c.keys()[0]
                     else:
-                        cmd += c[c.keys()[0]]+c.keys()[0]
-    return cmd
+                        command += c[c.keys()[0]]+c.keys()[0]
+    return command
 
 des = """
 -------------------------------------------------------------------------------
