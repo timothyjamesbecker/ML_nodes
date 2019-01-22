@@ -9,28 +9,34 @@ a single command that can configure an Ubuntu 16LTS system for machine learning 
 ```
 
 ### (1) dispatch.py
-##### depends on: python 2.7.12+, parimiko, subprocess32
-A general purpose ssh based dispatch tool for running commands across several connected nodes. Can be used remotely using the parimiko module which has acceptable perfromance for squick commands like 'ls'. For more intensive commands like copying large files, removing large files, or running multi-day long commands this module should be run from the head host that is in turn connected to the worker nodes. Remote commands can still be issued to monitor resources using the in built '--check_resources' option which by default will pull all targets and try to obtain the use cpu%, mem%, swap% and each disk mount such as '/'% and '/data'%.  
-#####A typical node resource command would be:
+##### depends on: python 2.7.12+, subprocess32
+A general purpose ssh based dispatch tool for running commands across several connected nodes. For intensive commands like copying large files, removing large files, or running multi-day long commands this module should be run from the head host that is in turn connected to the worker nodes. Remote monitoring of resources uses the system top/sensors internally which will pull all targets and obtain the use cpu-temp in degrees C, cpu%, mem%, swap% and each disk mount such as '/'% and '/data'%.  
+#####typical all-cluster resource check would be:
 ```bash
-./dispatch.py --head host.domain.com --remote --check_resources --verbose
+./dispatch.py
 ```
-while ssh into the head node before execution  yeilds simplified operation where the local /etc/hosts file is used:
-```bash
-./dispatch.py --check_resources --verbose
-```
-#####perform some command across all targets using sudo power:
+
+#####execute the same command on node1,node2,node3 targets using sudo:
 ```bash
 ./dispatch --targets node1,node2,node3 \ 
---command 'apt update && apt upgrade -y' \ 
+--command 'apt upgrade -y' \ 
 --sudo
 
 ```
-This example will update the ubuntu 16 LTS using the apt tool for all nodes.  Finally to run very intensive and long running work, first check that resources are avaible and then issue the command:
-```python
-./dispatch.py --check_resources --verbose
 
-screen -L ./dispatch.py --targets node4,node5,node6 \ 
---command '~/long_job.sh -p 1'
+#### execute different commands in an asynchronous queue using value injection
+```bash
+./dispatch --targets node1,node2 \
+--command 'job -p 1 -i /data/?.txt -o /data/?.dat'
+--values 'file1;result1,file2;result2,file3;result3,file4;result4'
 
 ```
+This last example will run one command at a time on node1 and node2 while the third and forth jobs will wait for the first job to finish before starting execution.
+
+### (2) load.py
+##### depends on: python 2.7.12+
+Allows for load testing in terms of -l cpu cores to load at 100% and -s seconds to execute that loading.
+```bash
+./load.py -s 20 -l 4
+```
+In the example we use 4 cores at 100% for 20 seconds time.
