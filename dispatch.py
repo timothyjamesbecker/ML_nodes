@@ -113,8 +113,11 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
         task = tasks.get() #can be less than #jobs
         jid,cmd,values,in_data,out_data = task['jid'],task['cmd'],task['values'],task['in_data'],task['out_data']
 
+        print('starting command: %s'%cmd)
         cmd = re.sub(' +',' ',cmd.replace('\n',' ').replace('\r',' '))
         cmd = inject_values(cmd,values,delim=delim)
+        print('value injected command: %s'%cmd)
+
         #[1B] resolve wildcards if needed
         if cmd.find(wild)>0:
             comp = cmd.split(' ')
@@ -137,6 +140,7 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
                             cmd += sorted(out.split(' '))[0]+c.keys()[0]
                         else:
                             cmd += c[c.keys()[0]]+c.keys()[0]
+        print('wildcard resolved command; %s'%cmd)
         #[2] second get a transfer semaphore if needed
         if in_data is not None:
             trans_cmd = ["rsync -aP %s %s"%(in_data[0],in_data[1])]
