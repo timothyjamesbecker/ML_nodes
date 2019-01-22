@@ -113,34 +113,10 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
         task = tasks.get() #can be less than #jobs
         jid,cmd,values,in_data,out_data = task['jid'],task['cmd'],task['values'],task['in_data'],task['out_data']
 
-        print('starting command: %s'%cmd)
         cmd = re.sub(' +',' ',cmd.replace('\n',' ').replace('\r',' '))
         cmd = inject_values(cmd,values,delim=delim)
-        print('value injected command: %s'%cmd)
+        cmd = resolve_wildcards(cmd,node,wild=wild)
 
-        #[1B] resolve wildcards if needed
-        if cmd.find(wild)>0:
-            comp = cmd.split(' ')
-            for i in range(len(comp)):
-                if comp[i].find(wild)>0:
-                    x,cmp = 0,[]
-                    for j in range(len(comp[i])):
-                        if comp[i][j]==',' or comp[i][j]==';' or comp[i][j]==':':
-                            cmp += [{comp[i][j]:comp[i][x:j]}]
-                            x = j+1
-                    if len(cmp)<1: cmp += [{'':comp[i]}]
-                    cmd = ''
-                    for c in cmp:
-                        out = ''
-                        try:
-                            out = subprocess.check_output("ssh %s -t 'ls %s'"%(node,c[c.keys()[0]]),shell=True)
-                        except Exception as E: pass
-                        if out!='':
-                            out = re.sub(' +',' ',out).replace('\n','').replace('\r','')
-                            cmd += sorted(out.split(' '))[0]+c.keys()[0]
-                        else:
-                            cmd += c[c.keys()[0]]+c.keys()[0]
-        print('wildcard resolved command; %s'%cmd)
         #[2] second get a transfer semaphore if needed
         if in_data is not None:
             trans_cmd = ["rsync -aP %s %s"%(in_data[0],in_data[1])]
@@ -238,8 +214,30 @@ def inject_values(cmd,values,delim='?'):
             if x>0: execute = execute[:x]+values+execute[x+1:]
     return execute
 
-def resolve_wildcards(cmd,wild):
-    return True
+def resolve_wildcards(cmd,node,wild='*'):
+    if cmd.find(wild)>0:
+        comp = cmd.split(' ')
+        for i in range(len(comp)):
+            if comp[i].find(wild)>0:
+                x,cmp=0,[]
+                for j in range(len(comp[i])):
+                    if comp[i][j]==',' or comp[i][j]==';' or comp[i][j]==':':
+                        cmp += [{comp[i][j]:comp[i][x:j]}]
+                        x = j+1
+                if len(cmp)<1: cmp += [{'':comp[i]}]
+                cmd=''
+                for c in cmp:
+                    out=''
+                    try:
+                        out = subprocess.check_output("ssh %s -t 'ls %s'"%(node,c[c.keys()[0]]),shell=True)
+                    except Exception as E:
+                        pass
+                    if out!='':
+                        out = re.sub(' +',' ',out).replace('\n','').replace('\r','')
+                        cmd += sorted(out.split(' '))[0]+c.keys()[0]
+                    else:
+                        cmd += c[c.keys()[0]]+c.keys()[0]
+    return cmd
 
 des = """
 -------------------------------------------------------------------------------
