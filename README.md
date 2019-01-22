@@ -16,7 +16,7 @@ A general purpose ssh based dispatch tool for running commands across several co
 ./dispatch.py
 ```
 which returns an output showing the status if you had eight nodes in addition to the head node:
-```bash
+```python
 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<results for status>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 node1: {'mem': 64.33, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 6.57, 'core_temp': 46.5, 'cpu': 0.0}
 node2: {'mem': 64.63, 'disks': {'/data': 13.0, '/': 11.0}, 'swap': 6.19, 'core_temp': 46.5, 'cpu': 0.0}
@@ -27,7 +27,6 @@ node6: {'mem': 64.33, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 2.69, 'core_t
 node7: {'mem': 64.74, 'disks': {'/data': 13.0, '/': 11.0}, 'swap': 2.88, 'core_temp': 46.75, 'cpu': 0.0}
 node8: {'mem': 65.69, 'disks': {'/data': 13.0, '/': 10.0}, 'swap': 2.56, 'core_temp': 46.25, 'cpu': 0.0}
 processing completed in 5.7 sec
-
 ```
 mem, disks, swap and cpu are % utilized, while core_temp is degrees celsius
 
