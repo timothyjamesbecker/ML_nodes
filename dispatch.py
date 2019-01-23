@@ -181,7 +181,7 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
         tasks.task_done()   #so now other work can run on this node
 
 def flush_cache(cx,node):
-    cmd = '/'.join(os.path.abspath(__file__).split('/')[:-1])+'flush.sh'
+    cmd = '/'.join(os.path.abspath(__file__).split('/')[:-1])+'/flush.sh'
     command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
     R = {node:{'out':'','err':{}}}
     try:
