@@ -219,8 +219,9 @@ def resolve_wildcards(cmd,node,wild='*'):
     if cmd.find(wild)>0:
         comp,command = cmd.split(' '),''
         for i in range(len(comp)):
+            cmp = []
             if comp[i].find(wild)>0:
-                x,cmp = 0,[]
+                x = 0
                 for j in range(len(comp[i])):
                     if comp[i][j]==',' or comp[i][j]==';' or comp[i][j]==':':
                         cmp += [{comp[i][j]:comp[i][x:j]}]
@@ -239,6 +240,8 @@ def resolve_wildcards(cmd,node,wild='*'):
                         command += out.rstrip('\n').split('\n')[0].split(' ')[0].rstrip(':')+c.keys()[0]
                     else:
                         command += c[c.keys()[0]]+c.keys()[0]
+            else: command += comp[i] + ' '
+        if command.endswith(' '): command = command[:-1]
     return command
 
 des = """
