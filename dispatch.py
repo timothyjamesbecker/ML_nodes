@@ -114,7 +114,7 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
 
         cmd = re.sub(' +',' ',cmd.replace('\n',' ').replace('\r',' '))
         cmd = inject_values(cmd,values,delim=delim)
-        cmd = resolve_wildcards(cmd,node,wild=wild)
+        # cmd = resolve_wildcards(cmd,node,wild=wild)
 
         #[2] second get a transfer semaphore if needed
         if in_data is not None:
@@ -214,6 +214,8 @@ def inject_values(cmd,values,delim='?'):
     return execute
 
 def resolve_wildcards(cmd,node,wild='*'):
+    command = cmd
+    resolve = '/'.join(os.path.abspath(__file__).split('/')[:-1])+'/resolve.py'
     if cmd.find(wild)>0:
         comp,command = cmd.split(' '),''
         for i in range(len(comp)):
@@ -226,11 +228,11 @@ def resolve_wildcards(cmd,node,wild='*'):
                 if x<j:        cmp += [{'':comp[i][x:j+1]}]
                 if len(cmp)<1: cmp += [{'':comp[i]}]
                 for c in cmp:
-                    out=''
-                    try:
-                        out = subprocess.check_output("ssh %s -t 'ls %s'"%(node,c[c.keys()[0]]),shell=True)
-                    except Exception as E:
-                        pass
+                    search = """ssh %s -t '%s --path "%s"'"""%(node,resolve,c[c.keys()[0]])
+                    out = ''
+                    try: out = subprocess.check_output(search,shell=True)
+                    except Exception as E: pass
+
                     if out!='':
                         out = re.sub(' +',' ',out.replace('\r',''))
                         if out.endswith('\n'): out = out[:-1]
