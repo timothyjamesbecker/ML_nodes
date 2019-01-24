@@ -217,7 +217,7 @@ def resolve_wildcards(cmd,node,wild='*'):
     command = cmd
     resolve = '/'.join(os.path.abspath(__file__).split('/')[:-1])+'/resolve.py'
     if cmd.find(wild)>0:
-        comp,command = cmd.split(' '),''
+        L,comp,sub = [],cmd.split(' '),''
         for i in range(len(comp)):
             cmp = []
             if comp[i].find(wild)>0:
@@ -237,11 +237,12 @@ def resolve_wildcards(cmd,node,wild='*'):
                     if out!='':
                         out = re.sub(' +',' ',out.replace('\r',''))
                         if out.endswith('\n'): out = out[:-1]
-                        command += out.rstrip('\n').split('\n')[0].split(' ')[0].rstrip(':')+c.keys()[0]
+                        sub += out.rstrip('\n').split('\n')[0].split(' ')[0].rstrip(':')+c.keys()[0]
                     else:
-                        command += c[c.keys()[0]]+c.keys()[0]
-            else: command += comp[i] + ' '
-        if command.endswith(' '): command = command[:-1]
+                        sub += c[c.keys()[0]]+c.keys()[0]
+                L += [sub]
+            else: L += [comp[i]]
+        command = ' '.join(L)
     return command
 
 des = """
