@@ -114,7 +114,7 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
 
         cmd = re.sub(' +',' ',cmd.replace('\n',' ').replace('\r',' '))
         cmd = inject_values(cmd,values,delim=delim)
-        # cmd = resolve_wildcards(cmd,node,wild=wild)
+        cmd = resolve_wildcards(cmd,node,wild=wild)
 
         #[2] second get a transfer semaphore if needed
         if in_data is not None:
@@ -138,7 +138,7 @@ def command_runner(cx,node,delim='?',wild='*',env=None,verbose=False):
         else:
             command = ["ssh %s -t \"echo '%s' | sudo -S %s\""%(node,cx['pwd'],cmd)]
 
-        R = {node:{'out':'','err':{},'jid':jid}}
+        R = {node:{'out':'','err':{},'jid':jid,'cmd':cmd}}
         try:
             if env is None:
                 R[node]['out'] = subprocess.check_output(' '.join(command),
@@ -459,7 +459,8 @@ if __name__=='__main__':
             for n in sorted(S[t].keys()):
                 if type(S[t][n]) is list and 'out' in S[t][n][0]:
                     for j in range(len(S[t][n])):
-                        out = re.sub('\n+','\n',re.sub(' +',' ',S[t][n][j]['out'].replace('\r','')))
+                        out  = re.sub('\n+','\n',re.sub(' +',' ',S[t][n][j]['cmd'].replace('\r','')))+':\n'
+                        out += re.sub('\n+','\n',re.sub(' +',' ',S[t][n][j]['out'].replace('\r','')))
                         if out.endswith('\n'): out = out[:-1]
                         print('%s:\n%s'%(''.join([':' for i in range(padding)])+\
                                          n+''.join([':' for i in range(padding)]),out))
