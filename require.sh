@@ -10,7 +10,7 @@ add-apt-repository ppa:alex-p/tesseract-ocr
 #deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/
 
 #apt installs
-apt-get update && apt-get install -y \
+apt-get update && apt-get install -y --allow-unauthenticated \
 ant \
 build-essential \
 openjdk-8-jdk-headless \
@@ -66,7 +66,7 @@ cd /
 
 #spark install setup
 cd /software
-wget http://mirror.reverse.net/pub/apache/spark/spark-2.3.1/spark-2.3.1-bin-hadoop2.7.tgz
+wget https://archive.apache.org/dist/spark/spark-2.3.1/spark-2.3.1-bin-hadoop2.7.tgz
 tar -xzf spark-2.3.1-bin-hadoop2.7.tgz
 rm spark-2.3.1-bin-hadoop2.7.tgz
 mv spark-2.3.1-bin-hadoop2.7 /software/spark
