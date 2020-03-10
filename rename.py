@@ -11,7 +11,7 @@ parser.add_argument('-p','--prefix',type=str,help='retrieves prefix from path_to
 parser.add_argument('-e','--exact',type=str,help='exact replacement instead of prefix retrieval\t[None]')
 args = parser.parse_args()
 
-if args.exact is None:
+if args.exact is not None:
     exact = args.exact
     print('replacing pattern=%s with exact=%s'%(args.find,exact))
     for path in sorted(glob.glob(args.in_dir+'/*')):
